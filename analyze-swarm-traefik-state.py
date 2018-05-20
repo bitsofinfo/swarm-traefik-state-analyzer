@@ -28,6 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--service-filter', dest='service_filter', required=False, help="i.e. '{\"name\":\"my-app\"}' Valid filters: id, name , label and mode")
     parser.add_argument('-o', '--output-dir', dest='output_dir', default="output")
     parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
 
     args = parser.parse_args()
@@ -48,13 +49,13 @@ if __name__ == '__main__':
     # generate layer checks db
     print("\nInvoking healthchecksdb.generate().....")
     healthchecksdb_file = path_prefix+"02_healthchecksdb.json"
-    healthchecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,healthchecksdb_file)
+    healthchecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,healthchecksdb_file,args.layers)
 
     # execute actual checks
     print("\nInvoking healthchecker.execute().....")
     healthcheckerdb_file = path_prefix+"03_healthcheckerdb.json"
     healthchecker.max_retries = args.max_retries
-    healthchecker.execute(healthchecksdb_file,healthcheckerdb_file,"json",args.max_retries,job_name)
+    healthchecker.execute(healthchecksdb_file,healthcheckerdb_file,"json",args.max_retries,job_name,args.layers)
 
     # make the report
     print("\nInvoking healthcheckerreport.execute().....")

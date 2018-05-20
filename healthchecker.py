@@ -193,7 +193,12 @@ def execHealthCheck(hc):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_name):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str):
+
+    layers_to_process = [0,1,2,3,4]
+    if layers_to_process_str is not None:
+        layers_to_process = list(map(int, layers_to_process_str))
+
 
     # seed max retries override
     max_retries = maximum_retries
@@ -262,8 +267,18 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
             service_results_db['msg'] = "nothing to do: replicas = 0"
             continue
 
+
+
         # we have replicas and lets do some checks
         for layer in service_record['health_checks']:
+
+            skip_layer = False
+            for l in layers_to_process:
+                if not str(l) in layer:
+                    skip_layer = True
+
+            if skip_layer:
+                continue
 
             # ok here we dump all the health check records
             # to be executed concurrently in the pool
@@ -361,7 +376,9 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                 global_metrics[layer]['retry_percentage'] = calcRetryPercentage(global_metrics[layer]['total_attempts'],global_layer_total_fail,global_layer_total_ok)
 
         # end loop over all layers
-        service_metrics['avg_resp_time_ms'] = service_metrics['total_req_time_ms'] / (service_metrics['total_fail']+service_metrics['total_ok'])
+        service_total_processed = (service_metrics['total_fail']+service_metrics['total_ok'])
+        if service_total_processed > 0:
+            service_metrics['avg_resp_time_ms'] = service_metrics['total_req_time_ms'] / service_total_processed
         service_metrics['health_rating'] = calcHealthRating(service_metrics['total_fail'],service_metrics['total_ok'])
         service_metrics['retry_percentage'] = calcRetryPercentage(service_metrics['total_attempts'],service_metrics['total_fail'],service_metrics['total_ok'])
 
@@ -406,9 +423,10 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--output-format', dest='output_format', default="json", help="json or yaml")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
     parser.add_argument('-n', '--job-name', dest='job_name', default="no --job-name specified", help="descriptive name for this execution job")
+    parser.add_argument('-l', '--layers', nargs='+')
 
     args = parser.parse_args()
 
     max_retries = args.max_retries
 
-    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name)
+    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name,args.layers)

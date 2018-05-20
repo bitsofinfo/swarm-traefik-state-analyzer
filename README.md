@@ -36,6 +36,7 @@ All of the data generated from `analyze-swarm-traefik-state.py` is stored by def
   --service-state-repo-root /pathto/[dir containing swarm-state.yml files] \
   --swarm-name [name] \
   --service-filter '{"name":"some-service-name prefix"}' \
+  --layers 0 1 2 3 4
   [--verbose]
 ```
 
@@ -93,11 +94,13 @@ You can use the generated JSON file that contains all the necessary information 
   --swarm-info-repo-root /pathto/[dir containing swarm-name.yml files] \
   --service-state-repo-root /pathto/[dir containing service-state.yml files]
   --output-filename [filename] \
+  [--layers 0 1 2 3 4]
 ```
 
 Options:
 * `--swarm-info-repo-root`: dir that anywhere in its subdirectories contains `[swarm-name].yml` files that contain the information as described in the `[swarm-name].yml` files section
 * `--service-state-repo-root`: dir that anywhere in its subdirectories contains `service-state.yml` files that contain the information as described in the `service-state.yml` files section
+* `--layers`: layers to generate actual checks for in the output database (default all)
 * `--input-filename`: path where the JSON output of `swarmstatedb.py` is
 * `--output-filename`: path where the JSON output will be written
 
@@ -211,12 +214,14 @@ As a start a simple `healthcheckerreport.py` script is in this project which wil
   --output-format [json or yaml: default json]
   --max-retries [maximum retries per health check]
   --output-filename [report filename] \
+  [--layers 0 1 2 3 4]
 ```
 
 Options:
 * `--max-retries`: max retries per health check, overrides the value in the input file
 * `--output-format`: json or yaml. Must be JSON if this will be fed into: `healthcheckerreport.py`
 * `--job-name`: optional arbitrary job name
+* `--layers`: layers to actually invoke checks for (default all)
 * `--input-filename`: path where the JSON output of `healthchecksdb.py` is
 * `--output-filename`: path where the JSON results will be written
 

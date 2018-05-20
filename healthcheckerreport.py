@@ -63,6 +63,7 @@ def generate(input_filename,output_filename,verbose):
     report_str.write(" - layer1: via traefik direct: " + fo("1",db_metrics) +"\n")
     report_str.write(" - layer2: via load balancers: " + fo("2",db_metrics) +"\n")
     report_str.write(" - layer3: via normal fqdns :  " + fo("3",db_metrics) +"\n")
+    report_str.write(" - layer4: via app proxies :   " + fo("4",db_metrics) +"\n")
     report_str.write("----------------------------------------------------------\n")
     report_str.write("\n")
 
@@ -88,7 +89,7 @@ def generate(input_filename,output_filename,verbose):
         report_str.write("    " +str(r(service_metrics['health_rating']))+"% ("+str(service['replicas'])+") ("+curr_prev_next+") "+ str(r(service_metrics['avg_resp_time_ms']))+"ms\n")
         report_str.write("----------------------------------------------------------\n")
 
-        for l in range(0,4):
+        for l in range(0,5):
             layer = "layer"+str(l)
             report_str.write(" - l"+str(l)+": " + fo(str(l),service_metrics)+"\n")
 
