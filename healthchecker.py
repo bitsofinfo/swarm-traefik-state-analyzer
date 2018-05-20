@@ -272,10 +272,11 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
         # we have replicas and lets do some checks
         for layer in service_record['health_checks']:
 
-            skip_layer = False
+            skip_layer = True
             for l in layers_to_process:
-                if not str(l) in layer:
-                    skip_layer = True
+                if str(l) in layer:
+                    skip_layer = False
+                    break
 
             if skip_layer:
                 continue
