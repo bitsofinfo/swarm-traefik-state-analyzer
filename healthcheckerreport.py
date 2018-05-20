@@ -125,8 +125,8 @@ def generate(input_filename,output_filename,verbose):
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="curlcheckerdb.json", help="Filename of health check result database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="curlcheckerreport.md")
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="healthcheckerdb.json", help="Filename of health check result database")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthcheckerreport.md")
     parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()

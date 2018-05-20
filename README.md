@@ -1,6 +1,6 @@
 # swarm-traefik-state-analyzer
 
-This project is intended to aid in the analysis of Docker Swarm services that are proxied by [Traefik](https://traefik.io/) in a fairly typical footprint whereby services are segmented on the swarm/traefik by classification of being *internal* or *external* services. All inbound http(s) traffic for either segment passes through its corresponding hard/software load balancer (layer2), to one of several Traefik instances (layer1), and then on to individual Swarm (layer0) service containers.
+This project is intended to aid in the analysis of Docker Swarm services that are proxied by [Traefik](https://traefik.io/) in a fairly typical footprint whereby services are segmented on the swarm/traefik by classification of being *internal* or *external* services. All inbound http(s) traffic for either segment passes through higher level proxies (layer4) or direct lb bound fqdns (layer3) on to its corresponding hard/software load balancer (layer2), to one of several Traefik instances (layer1), and then on to individual Swarm (layer0) service containers.
 
 Triaging *"where the hell does the problem reside"* in such a setup can be a daunting task as there are many possible points of misconfiguration, hardware and software failures that can be the culprit.
 
@@ -13,6 +13,7 @@ Triaging *"where the hell does the problem reside"* in such a setup can be a dau
 - Is the DNS for these labels correct?
 - Is the load-balancer pointing to the right Traefik backend?
 - Is something busted in front of my load-balancer?
+- Is the name/fqdn even pointing to the correct balancer or whatever is in front of that?
 
 Ugh... well those kinds of questions is what this tool is intended to *assist* in helping to narrow down where to look next. These scripts collect relevant info from the swarm, generate all possible avenues of ingress across all layers for health checks to services on a swarm, and execute those healthchecks giving detailed results.
 
@@ -118,58 +119,80 @@ Decorates additional info to `swarmstatedb` output:
               "method": "GET",
               "timeout": 5,
               "retries": 5,
-              "context": "my-app-prod-11-beta2_app swarm service port direct"
+              "description": "my-app-prod-11-beta2_app swarm service port direct"
           },
           ...
         ],
-        "layer1": [
-            {
-                "layer": 1,
-                "url": "https://myswarm1-node1.test.com:45900/health",
-                "target_container_port": 443,
-                "host_header": "my-app-prod.test.com",
-                "headers": [
-                    "test2: yes"
-                ],
-                "method": "GET",
-                "timeout": 5,
-                "retries": 5,
-                "context": "my-app-prod-11-beta2_app via traefik direct"
-            },
-            ...
-          ],
-        "layer2": [
-            {
-                "layer": 2,
-                "url": "https://myswarm1-extlb.test.com/health",
-                "target_container_port": 443,
-                "host_header": "my-app-prod.test.com",
-                "headers": [
-                    "test2: yes"
-                ],
-                "method": "GET",
-                "timeout": 5,
-                "retries": 5,
-                "context": "my-app-prod-11-beta2_app via load balancer direct"
-            },
-            ...
-          ],
-          "layer3": [
-              {
-                  "layer": 3,
-                  "url": "https://my-app-prod.test.com/health",
-                  "target_container_port": 443,
-                  "host_header": null,
-                  "headers": [
-                      "test2: yes"
+      "layer1": [
+          {
+              "layer": 1,
+              "url": "https://myswarm1-node1.test.com:45900/health",
+              "target_container_port": 443,
+              "host_header": "my-app-prod.test.com",
+              "headers": [
+                  "test2: yes"
+              ],
+              "method": "GET",
+              "timeout": 5,
+              "retries": 5,
+              "description": "my-app-prod-11-beta2_app via traefik direct"
+          },
+          ...
+        ],
+      "layer2": [
+          {
+              "layer": 2,
+              "url": "https://myswarm1-extlb.test.com/health",
+              "target_container_port": 443,
+              "host_header": "my-app-prod.test.com",
+              "headers": [
+                  "test2: yes"
+              ],
+              "method": "GET",
+              "timeout": 5,
+              "retries": 5,
+              "description": "my-app-prod-11-beta2_app via load balancer direct"
+          },
+          ...
+        ],
+      "layer3": [
+          {
+              "layer": 3,
+              "url": "https://my-app-prod.test.com/health",
+              "target_container_port": 443,
+              "host_header": null,
+              "headers": [
+                  "test2: yes"
+              ],
+              "method": "GET",
+              "timeout": 5,
+              "retries": 5,
+              "description": "my-app-prod-11-beta2_app via normal fqdn"
+          },
+      "layer4": [
+          {
+              "layer": 4,
+              "url": "https://my-app-prod-mode-a.test.com/api/2.7/submit-report",
+              "target_container_port": null,
+              "host_header": null,
+              "headers": [
+                  "Content-Type: text/json"
+              ],
+              "basic_auth": "user@test.com:123",
+              "body": "{ \"request_data\":\"XXXXXX\", \"text_version\":\"14a-c blah, blah, blah\" }",
+              "is_healthy": {
+                  "response_codes": [
+                      200
                   ],
-                  "method": "GET",
-                  "timeout": 5,
-                  "retries": 5,
-                  "context": "my-app-prod-11-beta2_app via normal fqdn"
+                  "body_regex": "result = 100A"
               },
-              ...
-            ]
+              "method": "POST",
+              "timeout": 10,
+              "retries": 5,
+              "description": "my-app-prod-11-beta2_app via layer 4 custom: https://my-app-prod-mode-a.test.com"
+          },
+          ...
+        ]
 
   ...
 ```
@@ -321,17 +344,45 @@ service_ports:
     name: "https access port"
     desc: "description"
     protocol: "https"
-    layers: [0,1,2,3]
     default: True
+    classifiers
+      - "mode-a"
+      - "mode-b"
 
 health_checks:
   - ports: [443]
     path: "/health"
+    layers: [0,1,2,3]
     headers:
       - "test2: yes"
     method: "GET"
     timeout: 10
     retries: 3
+  - ports: [443]
+    layers: [4]
+    path: "/api/2.7/submit-report"
+    method: "POST"
+    headers:
+      - "Content-Type: text/json"
+    basic_auth: "user@test.com:123"
+    body: >
+      {
+        "request_data":"XXXXXX",
+        "text_version":"14a-c blah, blah, blah",
+      }
+    is_healthy:
+      response_codes: [200]
+      body_regex: "result = 100A"
+    timeout: 5
+    retries: 5
+    classifiers: ["mode-a"]
+    contexts:
+      prod:
+        url_roots:
+          - "https://my-app-prod-mode-a.test.com"
+      pre-prod:
+        url_roots:
+          - "https://my-app-pre-prod-mode-a.test.com"
 
 contexts:
   prod:

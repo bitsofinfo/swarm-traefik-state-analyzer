@@ -13,7 +13,19 @@ import urllib.error
 import ssl
 import datetime
 import socket
+import base64
 from multiprocessing import Pool, Process
+
+#convert string to hex
+def toHex(s):
+    lst = []
+    for ch in s:
+        hv = hex(ord(ch)).replace('0x', '')
+        if len(hv) == 1:
+            hv = '0'+hv
+        lst.append(hv)
+
+    return reduce(lambda x,y:x+y, lst)
 
 # for max max_retries
 max_retries = None
@@ -66,23 +78,42 @@ def execHealthCheck(hc):
         headers = {}
         curl_header = ""
 
+        # seed to blank if not already there
+        if not 'headers' in hc or hc['headers'] is None:
+            hc['headers'] = []
+
         # handle specific host header
         if hc['host_header'] is not None and hc['host_header'] != '':
             headers = {'Host':hc['host_header']}
             curl_header = "--header 'Host: "+hc['host_header']+"' "
 
+        # handle basic auth
+        if 'basic_auth' in hc:
+            baheader = "Authorization: Basic: "+ base64.urlsafe_b64encode(hc['basic_auth'].strip().encode("UTF-8")).decode('ascii')
+            hc['headers'].append(baheader)
+
         # handle other headers
-        if 'headers' in hc and hc['headers'] is not None:
-            for header in hc['headers']:
-                key = header.split(":")[0].strip()
-                val = header.split(":")[1].strip()
-                headers[key] = val
-                curl_header += "--header '"+key+": "+val+"' "
+        for header in hc['headers']:
+            parts = header.split(":");
+            key = parts[0].strip()
+            val = ''.join(parts[1:]).strip()
+            headers[key] = val
+            curl_header += "--header '"+key+": "+val+"' "
 
-        print("Checking: " + hc['url'])
-        request = urllib.request.Request(hc['url'],headers=headers)
+        # body?
+        body_bytes = None
+        body_text = None
+        curl_data = ""
+        if 'body' in hc:
+            body_text = hc['body']
+            body_bytes = body_text.encode("UTF-8")
+            curl_body = body_text.replace("'","\\'")
+            curl_data = "-d '"+curl_body+"' "
 
-        curl_cmd = "curl -v --retry "+str(retries)+" -k -m " + str(hc['timeout']) + " -X GET " + curl_header + hc['url']
+        print("Checking: " + hc['method'] + " > "+ hc['url'])
+        request = urllib.request.Request(hc['url'],headers=headers,method=hc['method'],data=body_bytes)
+
+        curl_cmd = "curl -v --retry "+str(retries)+" -k -m " + str(hc['timeout']) + " -X "+hc['method']+" " + curl_header + curl_data +  hc['url']
         hc['curl'] = curl_cmd
 
     except Exception as e:
@@ -111,8 +142,26 @@ def execHealthCheck(hc):
             # attempt to parse the response
             response_data = readHTTPResponse(response)
 
-            # if ok...
-            if (response.getcode() == 200):
+            # what is "success"?!
+            success_status_codes = [200]
+            success_body_regex = None
+            if 'is_healthy' in hc:
+                success_status_codes = hc['is_healthy']['response_codes']
+                if 'body_regex' in hc['is_healthy']:
+                    success_body_regex = hc['is_healthy']['body_regex']
+
+
+            # lets actually check if the response is legit...
+            response_is_healthy = False
+            if response.getcode() in success_status_codes:
+                if success_body_regex is not None:
+                    if success_body_regex in response_data:
+                        response_is_healthy = True
+                else:
+                    response_is_healthy = True
+
+            # formulate our result object
+            if (response_is_healthy):
                 hc['result'] = { "success":True,
                                  "code":response.getcode(),
                                  "ms":ms,
@@ -285,8 +334,9 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                     service_failure_summary[error_result_key]['total'] += 1
 
                     # add curls if to the reason keyed under each service
-                    if health_check_record['curl'] not in service_failure_summary[error_result_key]['curls']:
-                        service_failure_summary[error_result_key]['curls'].append(health_check_record['curl'])
+                    if 'curl' in health_check_record:
+                        if health_check_record['curl'] not in service_failure_summary[error_result_key]['curls']:
+                            service_failure_summary[error_result_key]['curls'].append(health_check_record['curl'])
 
                 # check result is OK!
                 else:
@@ -355,10 +405,10 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthcheckerdb.json")
     parser.add_argument('-f', '--output-format', dest='output_format', default="json", help="json or yaml")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
-    parser.add_argument('-n', '--job-name', dest='job_name', help="descriptive name for this execution job")
+    parser.add_argument('-n', '--job-name', dest='job_name', default="no --job-name specified", help="descriptive name for this execution job")
 
     args = parser.parse_args()
 
     max_retries = args.max_retries
 
-    run(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name)
+    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name)

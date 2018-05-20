@@ -134,4 +134,4 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--service-filter', dest='service_filter', required=False, help="i.e. '{\"name\":\"my-app\"}' Valid filters: id, name , label and mode")
     args = parser.parse_args()
 
-    collect(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename)
+    generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename)
