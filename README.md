@@ -139,7 +139,7 @@ Decorates additional info to `swarmstatedb` output:
         "layer2": [
             {
                 "layer": 2,
-                "url": "https://myswarm1-external-lb.test.com/health",
+                "url": "https://myswarm1-extlb.test.com/health",
                 "target_container_port": 443,
                 "host_header": "my-app-prod.test.com",
                 "headers": [
@@ -222,13 +222,75 @@ Produces (a ton of) output: (truncated for brevity)
   ...
 ```
 
+
+## healthcheckerreport.py
+
+This script consumes the health check result output from `healthcheckerdb.py` and produces a simple markdown report dumped to the consul and output to a file.
+
+This report is pretty simplistic but gives a decent summary of the state of access to services on the target swarm.
+
+```
+./healthcheckerreport.py --input-filename [healthcheckerdb result file] \
+  --verbose [flag, will dump CURL commands for all failed checks]
+  --output-filename [report filename] \
+```
+
+Produces output:
+```
+SOURCE: healthcheckerdb.json
+
+(f/t) = f:failures, t:total checks
+ XXms = average round trip across checks
+    h = health: percentage of checks that succeeded
+    a = attempts: total attempts per health check
+    r = retries: percentage of attempts > 1 per check
+
+----------------------------------------------------------
+20180515a-my-app-prod-11-beta2_app
+  Overall: h:98.6%  (4/284)  a:312  r:9.9%   1405.6ms
+----------------------------------------------------------
+ - layer0: via swarm direct:   h:100.0% (0/28)   a:28   r:0.0%   
+ - layer1: via traefik direct: h:100.0% (0/224)  a:244  r:8.9%   
+ - layer2: via load balancers: h:100.0% (0/16)   a:16   r:0.0%   
+ - layer3: via normal fqdns :  h:75.0%  (4/16)   a:24   r:50.0%  
+----------------------------------------------------------
+
+----------------------------------------------------------
+my-app-prod-11-beta2_app
+    100.0% (1) (previous) 1084.7ms
+----------------------------------------------------------
+ - l0: h:100.0% (0/14)   a:14   r:0.0%   3497.0ms
+ - l1: h:100.0% (0/84)   a:98   r:16.7%  674.0ms
+ - l2: h:100.0% (0/6)    a:6    r:0.0%   1416.0ms
+ - l3: h:100.0% (0/6)    a:6    r:0.0%   871.0ms
+
+ ----------------------------------------------------------
+my-app-pre-prod-12-beta3_app
+     97.7% (1) (current) 804.2ms
+ ----------------------------------------------------------
+  - l0: h:100.0% (0/14)   a:14   r:0.0%   3695.0ms
+  - l1: h:100.0% (0/140)  a:146  r:4.3%   462.0ms
+  - l2: h:100.0% (0/10)   a:10   r:0.0%   1664.0ms
+  - l3: h:60.0%  (4/10)   a:18   r:80.0%  693.0ms
+       (3): (<class 'urllib.error.URLError'>, URLError(gaierror(8, 'nodename nor servname provided, or not known'),))
+           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-12-beta3.test.com/health
+           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-beta.test.com/health
+           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-joedev.test.com/health
+       (1): (<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))
+           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://bitsofinfo.test.com/health
+
+
+ RAW RESULTS --> healthcheckerdb.json
+ THE ABOVE ON DISK --> healthcheckerreport.md
+```
+
 ## [swarm-name].yml files
 
 ```
 SWARM_MGR_URI: "http://myswarm1.test.com:[port]"
 
-swarm_lb_endpoint_internal: "myswarm1-internal-lb.test.com"
-swarm_lb_endpoint_external: "myswarm1-external-lb.test.com"
+swarm_lb_endpoint_internal: "myswarm1-intlb.test.com"
+swarm_lb_endpoint_external: "myswarm1-extlb.test.com"
 
 traefik_swarm_port_internal_https: 45800
 traefik_swarm_port_external_https: 45900
@@ -276,8 +338,8 @@ contexts:
       previous: "9"
       next: "12-beta1"
   pre-prod:
-      versions:
-        current: "10"
-        previous: "9"
-        next: "12-beta1"
+    versions:
+      current: "10"
+      previous: "9"
+      next: "12-beta1"
 ```
