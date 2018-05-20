@@ -81,7 +81,9 @@ Produces output:
 
 ## healthchecksdb.py
 
-This script consumes the output from `swarmstatedb.py` and supplements it with information from `[swarm-name].yml`, and `service-state.yml` files to generate an exhaustive list of all possible ways to invoke the appropriate health checks for each service exposed on the swarm via each layer of access (0:swarm direct, 1:traefik direct, 2:load-balancers, and 3:normal fqdns).
+This script consumes the output from `swarmstatedb.py` and supplements it with information from `[swarm-name].yml`, and one or more relevant `service-state.yml` files to compute an exhaustive list of all possible ingress paths to invoke the appropriate health checks for each service exposed on the swarm via each layer of access (0:swarm direct, 1:traefik direct, 2:load-balancers, and 3:normal fqdns).
+
+Depending on the number of ports your application exposes, number of swarm nodes and corresponding Traefik frontend `Host` header based labels you have applied to a service... this can result in easily over 1000+ pre-computed ingress check combinations.
 
 You can use the generated JSON file that contains all the necessary information (urls, headers, methods, payloads etc) to drive any monitoring system you'd like.... or just feed into the provided `healthchecker.py` to execute all the health checks and write a detailed report out... again in JSON.
 
@@ -174,9 +176,9 @@ Decorates additional info to `swarmstatedb` output:
 
 ## healthchecker.py
 
-This script consumes the output from `healthchecksdb.py` uses it to actually execute all the defined health check requests (in parallel) defined in the `healthchecksdb.py` JSON output file. The results are written into another JSON file containing the detailed results and metrics of all health checks completed.
+This script consumes the output from `healthchecksdb.py` uses it to actually execute all the defined health check requests (in parallel) defined in the `healthchecksdb.py` JSON output file. The results are written into a JSON file containing the detailed results and metrics of all health checks completed. Note depending on the number of checks the prior scripts pre-computed, this could result in a very large result file.
 
-This file can be used to parse and feed into an alerting system or use however you see fit.
+This file can be used to parse and feed into an alerting system or use however you see fit for your analysis needs.
 
 As a start a simple `healthcheckerreport.py` script is in this project which will give a summary report from the `healthchecksdb.py` output JSON file.
 
