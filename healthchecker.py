@@ -386,10 +386,14 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
         # overall global metrics
         global_total_ok = global_metrics['total_ok']
         global_total_fail = global_metrics['total_fail']
+        global_total = (global_total_ok + global_total_fail)
 
         for service_result in global_results_db['service_results']:
             global_metrics['total_req_time_ms'] += service_metrics['total_req_time_ms']
-        global_metrics['avg_resp_time_ms'] = global_metrics['total_req_time_ms'] / (global_total_ok + global_total_fail)
+
+        if global_total > 0 and global_metrics['total_req_time_ms'] > 0:
+            global_metrics['avg_resp_time_ms'] = global_metrics['total_req_time_ms'] / (global_total_ok + global_total_fail)
+
         global_metrics['health_rating'] = calcHealthRating(global_total_fail,global_total_ok)
         global_metrics['retry_percentage'] = calcRetryPercentage(global_metrics['total_attempts'],global_total_fail,global_total_ok)
 
