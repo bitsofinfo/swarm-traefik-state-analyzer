@@ -34,8 +34,8 @@ if __name__ == '__main__':
 
     timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     job_name = timestamp+"-"+args.swarm_name+"-"+args.job_name
-    output_dir = args.output_dir+"/"+job_name+"/"
-    if not os.path.exists(os.path.dirname(output_dir)):
+    output_dir = args.output_dir+"/"+job_name
+    if not os.path.exists(os.path.dirname(output_dir+"/")):
         os.makedirs(os.path.dirname(output_dir))
 
     path_prefix = output_dir+"/"+job_name + "_"
