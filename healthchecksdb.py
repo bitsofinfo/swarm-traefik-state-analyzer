@@ -297,9 +297,6 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
     # We will create a new entry for the layer check database
     for docker_service_data in docker_service_data_db:
 
-        if docker_service_data['replicas'] == 0:
-            continue
-
         # docker service name
         docker_service_name = docker_service_data['name']
 
@@ -326,11 +323,11 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                 context = service_state['contexts'][context_name]
                 if context_name in docker_service_name:
                     docker_service_data['context'] = context_name
-                for version_name in context['versions']:
-                    version = context['versions'][version_name]
-                    if version != '':
-                        if version.replace(".","-") in docker_service_name:
-                            docker_service_data["context_version"] = version_name
+                    for version_name in context['versions']:
+                        version = context['versions'][version_name]
+                        if version != '':
+                            if version.replace(".","-") in docker_service_name:
+                                docker_service_data["context_version"] = version_name
 
         # Determine the traefik port based on internal/external
         traefik_port = swarm_info['traefik_swarm_port_internal_https']
@@ -355,6 +352,10 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         if service_state is None:
             print("No service_state could be found for: " + docker_service_data['name'] + " skipping...")
             continue;
+
+
+        if docker_service_data['replicas'] == 0:
+            continue
 
 
         # init health_checks
