@@ -202,14 +202,13 @@ def getSwarmInfoMap(swarm_info_repo_root,swarm_name):
 
 
 # Does the bulk of the work
-def run(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename):
+def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename):
 
     # instantiate the client
     print()
     print("Reading docker swarm service data from: " + input_filename)
     print("Reading swarm info files from: " + swarm_info_repo_root)
     print("Reading swarm service state YAML files from: " + service_state_repo_root)
-    print()
 
     # Load the docker swarm service json database
     with open(input_filename) as f:
@@ -345,13 +344,11 @@ def run(input_filename,swarm_info_repo_root,service_state_repo_root,output_filen
     if output_filename is not None:
         with open(output_filename, 'w') as outfile:
             json.dump(docker_service_data_db, outfile, indent=4)
-            print()
             print("Output written to: " + output_filename)
     else:
         print()
         print(json.dumps(docker_service_data_db,indent=4))
 
-    print()
 
 
 
@@ -360,10 +357,10 @@ def run(input_filename,swarm_info_repo_root,service_state_repo_root,output_filen
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="swarm-service-state-db.json")
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="swarmstatedb.json")
     parser.add_argument('-s', '--service-state-repo-root', dest='service_state_repo_root', required=True)
     parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True)
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="swarm-layer-check-db.json")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthchecksdb.json")
     args = parser.parse_args()
 
     run(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename)

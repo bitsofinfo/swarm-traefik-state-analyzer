@@ -29,17 +29,8 @@ def fo(layer,db):
 
     return ("h:"+str(r(l['health_rating']))+ "%").ljust(9) + ("("+str(l['total_fail']) + "/" + str(l['total_ok']+l['total_fail']) +")").ljust(9) + ("a:" + str(l['total_attempts'])).ljust(7) + retry_percentage.ljust(8) + " " +resp_time
 
-###########################
-# Main program
-##########################
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="check-health-curl-db.json", help="Filename of health check result database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="report.md")
-    parser.add_argument('-v', '--verbose', action='store_true')
-
-    args = parser.parse_args()
-
+# does the bulk of the work
+def generate(input_filename,output_filename,verbose):
     # output for report
     report_str = io.StringIO()
 
@@ -48,17 +39,25 @@ if __name__ == '__main__':
 
     # instantiate the client
     report_str.write("\n")
-    report_str.write("Reading health check results db: " + args.input_filename +"\n")
+    report_str.write("SOURCE: " + input_filename +"\n")
+    report_str.write("\n")
+
+    report_str.write("(f/t) = f:failures, t:total checks\n")
+    report_str.write(" XXms = average round trip across checks\n")
+    report_str.write("    h = health: percentage of checks that succeeded\n")
+    report_str.write("    a = attempts: total attempts per health check\n")
+    report_str.write("    r = retries: percentage of attempts > 1 per check\n")
     report_str.write("\n")
 
     # Load the docker swarm service json database
-    with open(args.input_filename) as f:
+    with open(input_filename) as f:
         health_result_db = json.load(f)
 
     db_metrics = health_result_db['metrics']
 
     report_str.write("----------------------------------------------------------\n")
-    report_str.write("Overall: " + fo(None,db_metrics) + "\n")
+    report_str.write(health_result_db['name']+"\n")
+    report_str.write("  Overall: " + fo(None,db_metrics) + "\n")
     report_str.write("----------------------------------------------------------\n")
     report_str.write(" - layer0: via swarm direct:   " + fo("0",db_metrics) +"\n")
     report_str.write(" - layer1: via traefik direct: " + fo("1",db_metrics) +"\n")
@@ -98,7 +97,7 @@ if __name__ == '__main__':
                 for reason in failinfo:
                     details = failinfo[reason]
                     report_str.write("      ("+str(details['total'])+"): " + reason +"\n")
-                    if args.verbose:
+                    if verbose:
                         for curl in details['curls']:
                             report_str.write("          " + curl +"\n")
 
@@ -107,16 +106,29 @@ if __name__ == '__main__':
 
     report_str.write("\n")
 
-    report_str.write("Exhaustive results details are located in --> " + args.input_filename +"\n")
+    report_str.write("RAW RESULTS --> " + input_filename +"\n")
 
-    if args.output_filename is not None:
-        report_str.write("A copy of this report has been written to --> " + args.output_filename +"\n")
+    if output_filename is not None:
+        report_str.write("THE ABOVE ON DISK --> " + output_filename +"\n")
 
     report_string = report_str.getvalue();
     report_str.close()
 
     print(report_string)
 
-    if args.output_filename is not None:
-        with open(args.output_filename, 'w') as outfile:
+    if output_filename is not None:
+        with open(output_filename, 'w') as outfile:
             outfile.write("```\n"+report_string+"\n```")
+
+###########################
+# Main program
+##########################
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="curlcheckerdb.json", help="Filename of health check result database")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="curlcheckerreport.md")
+    parser.add_argument('-v', '--verbose', action='store_true')
+
+    args = parser.parse_args()
+
+    generate(args.input_filename,args.output_filename,args.verbose)

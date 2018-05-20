@@ -144,7 +144,7 @@ def execHealthCheck(hc):
 
 
 # Does the bulk of the work
-def run(input_filename,output_filename,output_format,maximum_retries,check_name):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_name):
 
     # seed max retries override
     max_retries = maximum_retries
@@ -157,7 +157,7 @@ def run(input_filename,output_filename,output_format,maximum_retries,check_name)
     print("Reading layer check db from: " + input_filename)
 
     # where we will store our results
-    global_results_db = {'name':check_name,
+    global_results_db = {'name':job_name,
                          'metrics': {'health_rating':0,
                                    'total_fail':0,
                                    'total_ok':0,
@@ -351,14 +351,14 @@ def run(input_filename,output_filename,output_format,maximum_retries,check_name)
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="swarm-layer-check-db.json", help="Filename of layer check check database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="check-health-curl-db.json")
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="healthchecksdb.json", help="Filename of layer check check database")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthcheckerdb.json")
     parser.add_argument('-f', '--output-format', dest='output_format', default="json", help="json or yaml")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
-    parser.add_argument('-n', '--check-name', dest='check_name', help="descriptive name for this execution")
+    parser.add_argument('-n', '--job-name', dest='job_name', help="descriptive name for this execution job")
 
     args = parser.parse_args()
 
     max_retries = args.max_retries
 
-    run(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.check_name)
+    run(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name)
