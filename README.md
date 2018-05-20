@@ -344,7 +344,6 @@ service_ports:
     name: "https access port"
     desc: "description"
     protocol: "https"
-    default: True
     classifiers
       - "mode-a"
       - "mode-b"
