@@ -365,6 +365,7 @@ health_checks:
     method: "GET"
     timeout: 10
     retries: 3
+    tags: ["foo"]
   - ports: [443]
     layers: [4]
     path: "/api/2.7/submit-report"
@@ -383,6 +384,7 @@ health_checks:
     timeout: 5
     retries: 5
     classifiers: ["mode-a"]
+    tags: ["bar"]
     contexts:
       prod:
         url_roots:
