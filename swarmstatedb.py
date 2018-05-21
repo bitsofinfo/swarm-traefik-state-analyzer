@@ -88,7 +88,6 @@ def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename):
 
     if docker_host is None:
         print("ERROR: no SWARM_MGR_URI in located for: " + swarm_name)
-        Exit(1)
 
     print("Connecting to DOCKER_HOST: " + docker_host)
     client = docker.DockerClient(base_url=docker_host)

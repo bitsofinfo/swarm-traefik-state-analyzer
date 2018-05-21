@@ -34,6 +34,13 @@ sslcontext = ssl.create_default_context()
 sslcontext.check_hostname = False
 sslcontext.verify_mode = ssl.CERT_NONE
 
+def listContainsTokenIn(token_list,at_least_one_must_exist_in):
+    found = False
+    for token in token_list:
+        if token in at_least_one_must_exist_in:
+            found = True
+    return found
+
 def readHTTPResponse(response):
     response_data = None
     try:
@@ -193,12 +200,14 @@ def execHealthCheck(hc):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str,threads):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str,threads,tags):
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
         layers_to_process = list(map(int, layers_to_process_str))
 
+    if tags is None:
+        tags = []
 
     # seed max retries override
     max_retries = maximum_retries
@@ -214,6 +223,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
 
     # where we will store our results
     global_results_db = {'name':job_name,
+                         'tags':tags,
                          'metrics': {'health_rating':0,
                                    'total_fail':0,
                                    'total_ok':0,
@@ -222,11 +232,12 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                                    'total_req_time_ms': 0,
                                    'retry_percentage':0,
                                    'total_attempts': 0,
-                                   'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'failures':{}},
-                                   'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'failures':{}},
-                                   'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'failures':{}},
-                                   'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'failures':{}},
-                                   'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'failures':{}},
+                                   'total_skipped': 0,
+                                   'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
                                  },
                           'service_results': []
                           }
@@ -252,6 +263,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                                              'total_req_time_ms': 0,
                                              'retry_percentage':0,
                                              'total_attempts': 0,
+                                             'total_skipped': 0,
                                              'layer0': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
                                              'layer1': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
                                              'layer2': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
@@ -284,16 +296,42 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
             if skip_layer:
                 continue
 
+            # tag relevant?
+            skipped_health_checks = []
+            executable_health_checks = []
+
+            hc_executable = True
+            for hc in service_record['health_checks'][layer]:
+                if tags and len(tags) > 0:
+                    if 'tags' in hc and hc['tags'] is not None:
+                        if not listContainsTokenIn(tags,hc['tags']):
+                            hc_executable = False
+                    else:
+                        hc_executable = False
+
+                if hc_executable:
+                    executable_health_checks.append(hc)
+                else:
+                    hc['result'] = { "success":True,
+                                      "ms":0,
+                                      "attempts":0,
+                                      "skipped":True,
+                                      "msg":"does not match tags"}
+                    skipped_health_checks.append(hc)
+
             # ok here we dump all the health check records
             # to be executed concurrently in the pool
             # which returns a copy...
-            result_tagged_hc_records_for_layer = exec_pool.map(execHealthCheck,service_record['health_checks'][layer])
+            result_tagged_hc_records_for_layer = exec_pool.map(execHealthCheck,executable_health_checks)
 
             # and we now replace it w/ the result which is now decorated with results
             service_record['health_checks'][layer] = result_tagged_hc_records_for_layer
 
+            # +... the ones we skipped...
+            service_record['health_checks'][layer].extend(skipped_health_checks)
+
             # process each result record updating counters
-            for health_check_record in result_tagged_hc_records_for_layer:
+            for health_check_record in service_record['health_checks'][layer]:
 
                 # get the individual result
                 check_result = health_check_record['result']
@@ -305,6 +343,13 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                 # update the total attempst in global metrics
                 global_metrics['total_attempts'] += total_attempts
                 global_metrics[layer]['total_attempts'] += total_attempts
+
+                if 'skipped' in check_result and check_result['skipped']:
+                    # update the total skipped in global/service metrics
+                    global_metrics['total_skipped'] += 1
+                    global_metrics[layer]['total_skipped'] += 1
+                    service_metrics['total_skipped'] += 1
+                    continue
 
                 # service metrics across all layers
                 service_metrics['total_attempts'] += total_attempts
@@ -432,10 +477,11 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
     parser.add_argument('-n', '--job-name', dest='job_name', default="no --job-name specified", help="descriptive name for this execution job")
     parser.add_argument('-l', '--layers', nargs='+')
+    parser.add_argument('-g', '--tags', nargs='+')
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
 
     args = parser.parse_args()
 
     max_retries = int(args.max_retries)
 
-    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name,args.layers,args.threads)
+    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name,args.layers,args.threads,args.tags)

@@ -53,23 +53,23 @@ def listContainsTokenIn(token_list,at_least_one_must_exist_in):
 # Returns list of service_state.health_checks objects for any applicable
 # service_state declared service_port for the specified infrastructure `layer`
 # and `docker_service_name_or_traefik_fqdn`
-def getHealthChecksForServiceAnyPort(layer,docker_service_name_or_traefik_fqdn,service_state):
+def getHealthChecksForServiceAnyPort(layer,docker_service_name_or_traefik_fqdn,service_state,tags):
     health_checks = []
     for service_port in service_state["service_ports"]:
-        health_checks.extend(getHealthChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state))
+        health_checks.extend(getHealthChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state,tags))
     return dedup('path',health_checks)
 
 # Will return a list of service_state.health_checks objects for the specified
 # service port, infrastructure layer and docker_service_name_or_traefik_fqdn
 #
-def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state):
+def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state,tags):
     to_return = []
 
     # get the service_port info for the desired service_port
     service_state_port_info = service_state["service_ports"][service_port]
 
-    # lets get all possible health_checks potentially supported for the given port and layer
-    health_checks_for_port = getHealthChecksForPort(layer,service_port,service_state['health_checks'])
+    # lets get all possible health_checks potentially supported for the given port and layer and tags
+    health_checks_for_port = getHealthChecksForPort(layer,service_port,service_state['health_checks'],tags)
 
     # layer 4 is more unique
     # we handle differently as
@@ -187,11 +187,23 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
     return dedup('path',to_return)
 
 # Gets all applicable health check objects for the given port
-def getHealthChecksForPort(layer,port,service_state_health_checks):
+def getHealthChecksForPort(layer,port,service_state_health_checks,tags):
     hcs_toreturn = []
     for hc in service_state_health_checks:
         if port in hc['ports'] and layer in hc['layers']:
-            hcs_toreturn.append(hc)
+
+            # filter by tags?
+            hc_qualifies = True
+            if tags and len(tags) > 0: # we have tags we must comply with
+                if 'tags' in hc and hc['tags'] is not None:
+                    if not listContainsTokenIn(tags,hc['tags']):
+                        hc_qualifies = False
+                else: # hc record has no tags...
+                    hc_qualifies = False
+
+            if hc_qualifies:
+                hcs_toreturn.append(hc)
+
     return hcs_toreturn;
 
 # Constructs a health check entry object for placement in the output-file
@@ -222,6 +234,10 @@ def toHealthCheckEntry(layer,host_header,url_root,target_container_port,healthch
     hc_entry['timeout'] = healthcheck_info['timeout']
     hc_entry['retries'] = healthcheck_info['retries']
     hc_entry['description'] = description
+
+    if 'tags' in healthcheck_info:
+        hc_entry['tags'] = healthcheck_info['tags']
+
     return hc_entry
 
 # Given a record from docker_service_data_db
@@ -268,7 +284,10 @@ def getSwarmInfoMap(swarm_info_repo_root,swarm_name):
 
 
 # Does the bulk of the work
-def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str):
+def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str,tags):
+
+    if tags is None:
+        tags = []
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
@@ -380,7 +399,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                     swarm_pub_port = int(p.split(":")[0])
                     target_container_port = int(p.split(":")[1])
 
-                    for hc in getHealthChecksForServicePort(0,target_container_port,docker_service_name,service_state):
+                    for hc in getHealthChecksForServicePort(0,target_container_port,docker_service_name,service_state,tags):
                         url = service_state['service_ports'][target_container_port]["protocol"]+"://"+host+":"+str(swarm_pub_port)
                         hc_entry = toHealthCheckEntry(0,None,url,target_container_port,hc,docker_service_name+" swarm service port direct")
                         docker_service_data['health_checks']['layer0'].append(hc_entry)
@@ -391,21 +410,21 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         if 1 in layers_to_process:
             for host in getSwarmHostFQDNs(swarm_name):
                 for fqdn in docker_service_data['traefik_host_labels']:
-                    for hc in getHealthChecksForServiceAnyPort(1,fqdn,service_state):
+                    for hc in getHealthChecksForServiceAnyPort(1,fqdn,service_state,tags):
                         hc_entry = toHealthCheckEntry(1,fqdn,"https://"+host+":"+str(traefik_port),None,hc,docker_service_name+" via traefik swarm port")
                         docker_service_data['health_checks']['layer1'].append(hc_entry)
 
         # layer-2: load-balancers
         if 2 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
-                for hc in getHealthChecksForServiceAnyPort(2,fqdn,service_state):
+                for hc in getHealthChecksForServiceAnyPort(2,fqdn,service_state,tags):
                     hc_entry = toHealthCheckEntry(2,fqdn,"https://"+load_balancer,None,hc,docker_service_name+" via load balancer")
                     docker_service_data['health_checks']['layer2'].append(hc_entry)
 
         # layer-3: straight, FQDN access
         if 3 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
-                for hc in getHealthChecksForServiceAnyPort(3,fqdn,service_state):
+                for hc in getHealthChecksForServiceAnyPort(3,fqdn,service_state,tags):
                     hc_entry = toHealthCheckEntry(3,None,"https://"+fqdn,None,hc,docker_service_name+" via normal fqdn access")
                     docker_service_data['health_checks']['layer3'].append(hc_entry)
 
@@ -414,7 +433,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         # is static in the health check config and tied to the context
         # vs. being calculated like the other layers above
         if 4 in layers_to_process:
-            for hc in getHealthChecksForServiceAnyPort(4,docker_service_name,service_state):
+            for hc in getHealthChecksForServiceAnyPort(4,docker_service_name,service_state,tags):
                 contexts = hc['contexts']
                 for context_name in contexts:
                     if context_name in docker_service_name:
@@ -445,6 +464,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True)
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthchecksdb.json")
     parser.add_argument('-l', '--layers', nargs='+')
+    parser.add_argument('-g', '--tags', nargs='+')
     args = parser.parse_args()
 
-    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers)
+    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags)

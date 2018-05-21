@@ -29,6 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-dir', dest='output_dir', default="output")
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-l', '--layers', nargs='+')
+    parser.add_argument('-g', '--tags', nargs='+')
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
 
@@ -50,13 +51,13 @@ if __name__ == '__main__':
     # generate layer checks db
     print("\nInvoking healthchecksdb.generate().....")
     healthchecksdb_file = path_prefix+"02_healthchecksdb.json"
-    healthchecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,healthchecksdb_file,args.layers)
+    healthchecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,healthchecksdb_file,args.layers,args.tags)
 
     # execute actual checks
     print("\nInvoking healthchecker.execute().....")
     healthcheckerdb_file = path_prefix+"03_healthcheckerdb.json"
     healthchecker.max_retries = args.max_retries
-    healthchecker.execute(healthchecksdb_file,healthcheckerdb_file,"json",args.max_retries,job_name,args.layers,args.threads)
+    healthchecker.execute(healthchecksdb_file,healthcheckerdb_file,"json",args.max_retries,job_name,args.layers,args.threads,args.tags)
 
     # make the report
     print("\nInvoking healthcheckerreport.execute().....")
