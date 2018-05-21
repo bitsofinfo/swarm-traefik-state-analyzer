@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-dir', dest='output_dir', default="output")
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-l', '--layers', nargs='+')
-    parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing..."
+    parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
 
     args = parser.parse_args()
