@@ -432,6 +432,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    max_retries = args.max_retries
+    max_retries = int(args.max_retries)
 
     execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name,args.layers)
