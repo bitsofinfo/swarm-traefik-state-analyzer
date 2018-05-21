@@ -399,7 +399,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         if 2 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
                 for hc in getHealthChecksForServiceAnyPort(2,fqdn,service_state):
-                    hc_entry = toHealthCheckEntry(2,fqdn,"https://"+load_balancer,None,hc,docker_service_name+" via azure load balancer")
+                    hc_entry = toHealthCheckEntry(2,fqdn,"https://"+load_balancer,None,hc,docker_service_name+" via load balancer")
                     docker_service_data['health_checks']['layer2'].append(hc_entry)
 
         # layer-3: straight, FQDN access
