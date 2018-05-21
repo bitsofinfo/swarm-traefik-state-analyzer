@@ -217,7 +217,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                          'metrics': {'health_rating':0,
                                    'total_fail':0,
                                    'total_ok':0,
-                                   'total_skipped_no_replicas':0
+                                   'total_skipped_no_replicas':0,
                                    'avg_resp_time_ms': 0,
                                    'total_req_time_ms': 0,
                                    'retry_percentage':0,
