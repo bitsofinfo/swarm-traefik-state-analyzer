@@ -42,6 +42,7 @@ def generate(input_filename,output_filename,verbose):
     report_str.write("SOURCE: " + input_filename +"\n")
     report_str.write("\n")
 
+    report_str.write("  (N) = total replicas\n")
     report_str.write("(f/t) = f:failures, t:total checks\n")
     report_str.write(" XXms = average round trip across checks\n")
     report_str.write("    h = health: percentage of checks that succeeded\n")

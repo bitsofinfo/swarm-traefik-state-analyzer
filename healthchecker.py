@@ -264,7 +264,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
 
         # no replicas? skip
         if service_record['replicas'] == 0:
-            global_metrics['total_ok'] += 1
+            global_metrics['total_skipped_no_replicas'] += 1
             service_results_db['success'] = True
             service_results_db['msg'] = "nothing to do: replicas = 0"
             continue
