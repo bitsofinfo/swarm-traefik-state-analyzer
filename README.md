@@ -36,7 +36,8 @@ All of the data generated from `analyze-swarm-traefik-state.py` is stored by def
   --service-state-repo-root /pathto/[dir containing swarm-state.yml files] \
   --swarm-name [name] \
   --service-filter '{"name":"some-service-name prefix"}' \
-  --layers 0 1 2 3 4
+  --layers 0 1 2 3 4 \
+  --threads 30 \
   [--verbose]
 ```
 
@@ -214,7 +215,8 @@ As a start a simple `healthcheckerreport.py` script is in this project which wil
   --output-format [json or yaml: default json]
   --max-retries [maximum retries per health check]
   --output-filename [report filename] \
-  [--layers 0 1 2 3 4]
+  [--layers 0 1 2 3 4] \
+  [--threads N]
 ```
 
 Options:
@@ -222,6 +224,7 @@ Options:
 * `--output-format`: json or yaml. Must be JSON if this will be fed into: `healthcheckerreport.py`
 * `--job-name`: optional arbitrary job name
 * `--layers`: layers to actually invoke checks for (default all)
+* `--threads`: default 30, number of threads for checks, adjust if DOSing yourself
 * `--input-filename`: path where the JSON output of `healthchecksdb.py` is
 * `--output-filename`: path where the JSON results will be written
 

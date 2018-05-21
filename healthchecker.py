@@ -193,7 +193,7 @@ def execHealthCheck(hc):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str,threads):
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
@@ -204,7 +204,9 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
     max_retries = maximum_retries
 
     # mthreaded...
-    exec_pool = Pool(30)
+    if (isinstance(threads,str)):
+        threads = int(threads)
+    exec_pool = Pool(threads)
 
     # instantiate the client
     print()
@@ -429,9 +431,10 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
     parser.add_argument('-n', '--job-name', dest='job_name', default="no --job-name specified", help="descriptive name for this execution job")
     parser.add_argument('-l', '--layers', nargs='+')
+    parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
 
     args = parser.parse_args()
 
     max_retries = int(args.max_retries)
 
-    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name,args.layers)
+    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name,args.layers,args.threads)
