@@ -11,6 +11,12 @@ import glob
 import yaml
 import re
 
+class SetEncoder(json.JSONEncoder):
+    def default(self, obj):
+    if isinstance(obj, set):
+        return list(obj)
+    return json.JSONEncoder.default(self, obj)
+
 # map of  swarm_name -> [props from swarm.yml file]
 swarm_name_2_swarm_info = {}
 
@@ -454,7 +460,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
     # to json
     if output_filename is not None:
         with open(output_filename, 'w') as outfile:
-            json.dump(docker_service_data_db, outfile, indent=4)
+            json.dump(docker_service_data_db, outfile, indent=4, cls=SetEncoder)
             print("Output written to: " + output_filename)
     else:
         print()
