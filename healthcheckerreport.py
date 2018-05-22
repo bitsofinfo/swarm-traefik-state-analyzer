@@ -104,8 +104,9 @@ def generate(input_filename,output_filename,verbose):
                             report_str.write("          " + curl +"\n")
 
         if 'warnings' in service and len(service['warnings']) > 0:
+            report_str.write("\n")
             for warning in service['warnings']:
-                report_str.write("   WARNING: " + warning +"\n")
+                report_str.write("   (!W): " + warning +"\n")
 
         report_str.write("\n")
 
