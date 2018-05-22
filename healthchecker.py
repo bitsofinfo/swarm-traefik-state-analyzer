@@ -90,8 +90,10 @@ def execHealthCheck(hc):
             hc['headers'] = []
 
         # handle specific host header
+        host_header_val_4log = "none"
         if hc['host_header'] is not None and hc['host_header'] != '':
             headers = {'Host':hc['host_header']}
+            host_header_val_4log = hc['host_header']
             curl_header = "--header 'Host: "+hc['host_header']+"' "
 
         # handle basic auth
@@ -117,7 +119,9 @@ def execHealthCheck(hc):
             curl_body = body_text.replace("'","\\'")
             curl_data = "-d '"+curl_body+"' "
 
-        print("Checking: " + hc['method'] + " > "+ hc['url'])
+
+        print("Checking: " + hc['method'] + " > "+ hc['url'] + " hh:" + host_header_val_4log)
+
         request = urllib.request.Request(hc['url'],headers=headers,method=hc['method'],data=body_bytes)
 
         curl_cmd = "curl -v --retry "+str(retries)+" -k -m " + str(hc['timeout']) + " -X "+hc['method']+" " + curl_header + curl_data +  hc['url']
