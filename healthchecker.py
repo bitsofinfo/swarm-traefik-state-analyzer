@@ -210,7 +210,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
         tags = []
 
     # seed max retries override
-    max_retries = maximum_retries
+    max_retries = int(maximum_retries)
 
     # mthreaded...
     if (isinstance(threads,str)):
@@ -484,4 +484,4 @@ if __name__ == '__main__':
 
     max_retries = int(args.max_retries)
 
-    execute(args.input_filename,args.output_filename,args.output_format,args.max_retries,args.job_name,args.layers,args.threads,args.tags)
+    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_name,args.layers,args.threads,args.tags)
