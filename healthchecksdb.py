@@ -68,6 +68,7 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
     # get the service_port info for the desired service_port
     if not service_port in service_state["service_ports"]:
         print("WARN: getHealthChecksForServicePort() configured port: " + str(service_port) + " IS NOT PUBLISHED according to swarm service data skipping....")
+        return []
     service_state_port_info = service_state["service_ports"][service_port]
 
     # lets get all possible health_checks potentially supported for the given port and layer and tags
