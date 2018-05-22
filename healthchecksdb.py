@@ -67,8 +67,11 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
 
     # get the service_port info for the desired service_port
     if not service_port in service_state["service_ports"]:
-        print("service-state.yml MISCONFIG: "+docker_service_name_or_traefik_fqdn+" configured port: " + str(service_port) + " IS NOT PUBLISHED on swarm SKIPPING...")
+        msg = "MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml declared port: " + str(service_port) + " IS NOT PUBLISHED according to swarm!"
+        service_state['warnings'].append(msg)
+        print(msg)
         return []
+
     service_state_port_info = service_state["service_ports"][service_port]
 
     # lets get all possible health_checks potentially supported for the given port and layer and tags
@@ -393,6 +396,9 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                                                 'layer4':[]
                                                 }
 
+
+        # setup warnings so mis-configurations can be logged
+        docker_service_data['warnings'] = []
 
         # layer-0: swarm direct checks
         if 0 in layers_to_process:
