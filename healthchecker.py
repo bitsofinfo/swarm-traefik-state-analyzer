@@ -80,7 +80,7 @@ def execHealthCheck(hc):
     try:
         retries = hc['retries']
         if (max_retries is not None):
-            retries = max_retries
+            retries = int(max_retries)
 
         headers = {}
         curl_header = ""
