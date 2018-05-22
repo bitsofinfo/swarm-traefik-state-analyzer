@@ -68,7 +68,7 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
     # get the service_port info for the desired service_port
     if not service_port in service_state["service_ports"]:
         msg = "MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml declared port: " + str(service_port) + " IS NOT PUBLISHED according to swarm!"
-        docker_service_data['warnings'].append(msg)
+        docker_service_data['warnings'].add(msg)
         print(msg)
         return []
 
