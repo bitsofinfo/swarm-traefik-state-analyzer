@@ -398,7 +398,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
 
 
         # setup warnings so mis-configurations can be logged
-        docker_service_data['warnings'] = []
+        docker_service_data['warnings'] = set()
 
         # layer-0: swarm direct checks
         if 0 in layers_to_process:
