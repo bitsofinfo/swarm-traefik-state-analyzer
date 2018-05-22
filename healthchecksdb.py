@@ -15,7 +15,7 @@ class SetEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)
-    return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, obj)
 
 # map of  swarm_name -> [props from swarm.yml file]
 swarm_name_2_swarm_info = {}
