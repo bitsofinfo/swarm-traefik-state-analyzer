@@ -46,7 +46,7 @@ def generate(input_filename,output_filename,verbose):
     report_str.write("(f/t) = f:failures, t:total checks\n")
     report_str.write(" XXms = average round trip across checks\n")
     report_str.write("    h = health: percentage of checks that succeeded\n")
-    report_str.write("    a = attempts: total attempts per health check\n")
+    report_str.write("    a = attempts: total attempts per service check\n")
     report_str.write("    r = retries: percentage of attempts > 1 per check\n")
     report_str.write("\n")
 
@@ -60,11 +60,11 @@ def generate(input_filename,output_filename,verbose):
     report_str.write(health_result_db['name']+"\n")
     report_str.write("  Overall: " + fo(None,db_metrics) + "\n")
     report_str.write("----------------------------------------------------------\n")
-    report_str.write(" - layer0: via swarm direct:   " + fo("0",db_metrics) +"\n")
-    report_str.write(" - layer1: via traefik direct: " + fo("1",db_metrics) +"\n")
-    report_str.write(" - layer2: via load balancers: " + fo("2",db_metrics) +"\n")
-    report_str.write(" - layer3: via normal fqdns :  " + fo("3",db_metrics) +"\n")
-    report_str.write(" - layer4: via app proxies :   " + fo("4",db_metrics) +"\n")
+    report_str.write(" - layer0: swarm direct:   " + fo("0",db_metrics) +"\n")
+    report_str.write(" - layer1: traefik direct: " + fo("1",db_metrics) +"\n")
+    report_str.write(" - layer2: load balancers: " + fo("2",db_metrics) +"\n")
+    report_str.write(" - layer3: normal fqdns :  " + fo("3",db_metrics) +"\n")
+    report_str.write(" - layer4: app proxies :   " + fo("4",db_metrics) +"\n")
     report_str.write("----------------------------------------------------------\n")
     report_str.write("\n")
 
@@ -77,17 +77,9 @@ def generate(input_filename,output_filename,verbose):
 
         service_metrics = service_result['metrics']
 
-        curr_prev_next = "?"
-        if 'current' in service['context_version']:
-            curr_prev_next = "current"
-        elif 'previous' in service['context_version']:
-            curr_prev_next = "previous"
-        elif 'next' in service['context_version']:
-            curr_prev_next = "next"
-
         report_str.write("----------------------------------------------------------\n")
         report_str.write(service['name']+"\n")
-        report_str.write("    " +str(r(service_metrics['health_rating']))+"% ("+str(service['replicas'])+") ("+curr_prev_next+") "+ str(r(service_metrics['avg_resp_time_ms']))+"ms\n")
+        report_str.write("    " +str(r(service_metrics['health_rating']))+"% ("+str(service['replicas'])+") "+str(service['context']['tags']).replace('\'','')+" "+ str(r(service_metrics['avg_resp_time_ms']))+"ms\n")
         report_str.write("----------------------------------------------------------\n")
 
         for l in range(0,5):
@@ -131,8 +123,8 @@ def generate(input_filename,output_filename,verbose):
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="healthcheckerdb.json", help="Filename of health check result database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthcheckerreport.md")
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicecheckerdb.json", help="Filename of service check result database")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicecheckerreport.md")
     parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()

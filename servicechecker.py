@@ -15,6 +15,7 @@ import datetime
 import socket
 import base64
 from multiprocessing import Pool, Process
+from jinja2 import Template
 
 #convert string to hex
 def toHex(s):
@@ -42,16 +43,17 @@ def listContainsTokenIn(token_list,at_least_one_must_exist_in):
     return found
 
 def readHTTPResponse(response):
-    response_data = None
+    response_data = {'as_string':None,'as_object':None}
     try:
         response_str = response.read().decode('utf-8')
+        response_data['as_string'] = response_str
         try:
             response_obj = json.loads(response_str)
-            response_data = response_obj
+            response_data['as_object'] = response_obj
         except:
-            response_data = response_str
+            response_data['as_string'] = response_str
     except Exception as e:
-        response_data = "body read failed: " + str(sys.exc_info())
+        response_data['as_string'] = "body read failed: " + str(sys.exc_info())
 
     return response_data
 
@@ -71,7 +73,10 @@ def calcRetryPercentage(total_attempts,total_fail,total_ok):
     return ((diff/total)*100)
 
 
-def execHealthCheck(hc):
+def execServiceCheck(service_record_and_health_check):
+
+    hc = service_record_and_health_check['health_check']
+    service_record = service_record_and_health_check['service_record']
 
     hc['result'] = { "success":False }
 
@@ -155,21 +160,41 @@ def execHealthCheck(hc):
 
             # what is "success"?!
             success_status_codes = [200]
-            success_body_regex = None
+            success_body_evaluator = None
             if 'is_healthy' in hc:
                 success_status_codes = hc['is_healthy']['response_codes']
-                if 'body_regex' in hc['is_healthy']:
-                    success_body_regex = hc['is_healthy']['body_regex']
+                if 'body_evaluator' in hc['is_healthy']:
+                    success_body_evaluator = hc['is_healthy']['body_evaluator']
 
 
             # lets actually check if the response is legit...
             response_is_healthy = False
+            response_unhealthy_reason = None
             if response.getcode() in success_status_codes:
-                if success_body_regex is not None:
-                    if success_body_regex in response_data:
-                        response_is_healthy = True
+
+                # handle evaluator..
+                if success_body_evaluator is not None:
+
+                    if success_body_evaluator['type'] == "contains":
+                        if success_body_evaluator["value"] in response_data['as_string']:
+                            response_is_healthy = True
+                        else:
+                            response_unhealthy_reason = "body_evaluator[contains] failed, did not find: '"+success_body_evaluator["value"]+"' in resp. body"
+
+                    elif success_body_evaluator['type'] == "jinja2":
+                        t = Template(success_body_evaluator["template"])
+                        x = t.render(response_data=response_data,response_code=response.getcode(),service_record=service_record)
+                        if '1' in x:
+                            response_is_healthy = True
+                        else:
+                            response_unhealthy_reason = "body_evaluator[jinja2] failed, template returned 0 (expected 1)"
+
                 else:
                     response_is_healthy = True
+
+            # status code invalid
+            else:
+                response_unhealthy_reason = "response status code:" + response.getcode() + ", is not in:" + str(success_status_codes)
 
             # formulate our result object
             if (response_is_healthy):
@@ -183,6 +208,7 @@ def execHealthCheck(hc):
             else:
                 hc['result'] = { "success":False,
                                  "code":response.getcode(),
+                                 "error":response_unhealthy_reason,
                                  "ms":ms,
                                  "attempts":attempts,
                                  "response": response_data,
@@ -200,7 +226,7 @@ def execHealthCheck(hc):
                 hc['result']['headers'] = e.getheaders()
 
 
-    return hc
+    return service_record_and_health_check
 
 
 # Does the bulk of the work
@@ -289,7 +315,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
 
 
         # we have replicas and lets do some checks
-        for layer in service_record['health_checks']:
+        for layer in service_record['service_checks']:
 
             skip_layer = True
             for l in layers_to_process:
@@ -301,11 +327,11 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                 continue
 
             # tag relevant?
-            skipped_health_checks = []
-            executable_health_checks = []
+            skipped_service_checks = []
+            executable_service_checks = [] # note this is array of dicts
 
             hc_executable = True
-            for hc in service_record['health_checks'][layer]:
+            for hc in service_record['service_checks'][layer]:
                 if tags and len(tags) > 0:
                     if 'tags' in hc and hc['tags'] is not None:
                         if not listContainsTokenIn(tags,hc['tags']):
@@ -314,31 +340,33 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                         hc_executable = False
 
                 if hc_executable:
-                    executable_health_checks.append(hc)
+                    executable_service_checks.append({'service_record':service_record,'health_check':hc})
                 else:
                     hc['result'] = { "success":True,
                                       "ms":0,
                                       "attempts":0,
                                       "skipped":True,
                                       "msg":"does not match tags"}
-                    skipped_health_checks.append(hc)
+                    skipped_service_checks.append(hc)
 
-            # ok here we dump all the health check records
+            # ok here we dump all the service check records
             # to be executed concurrently in the pool
             # which returns a copy...
-            result_tagged_hc_records_for_layer = exec_pool.map(execHealthCheck,executable_health_checks)
+            executable_service_checks = exec_pool.map(execServiceCheck,executable_service_checks)
 
             # and we now replace it w/ the result which is now decorated with results
-            service_record['health_checks'][layer] = result_tagged_hc_records_for_layer
+            service_record['service_checks'][layer] = []
+            for item in executable_service_checks:
+                service_record['service_checks'][layer].append(item['health_check'])
 
             # +... the ones we skipped...
-            service_record['health_checks'][layer].extend(skipped_health_checks)
+            service_record['service_checks'][layer].extend(skipped_service_checks)
 
             # process each result record updating counters
-            for health_check_record in service_record['health_checks'][layer]:
+            for service_check_record in service_record['service_checks'][layer]:
 
                 # get the individual result
-                check_result = health_check_record['result']
+                check_result = service_check_record['result']
 
                 # total attempts
                 total_attempts = check_result['attempts']
@@ -402,9 +430,9 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                     service_failure_summary[error_result_key]['total'] += 1
 
                     # add curls if to the reason keyed under each service
-                    if 'curl' in health_check_record:
-                        if health_check_record['curl'] not in service_failure_summary[error_result_key]['curls']:
-                            service_failure_summary[error_result_key]['curls'].append(health_check_record['curl'])
+                    if 'curl' in service_check_record:
+                        if service_check_record['curl'] not in service_failure_summary[error_result_key]['curls']:
+                            service_failure_summary[error_result_key]['curls'].append(service_check_record['curl'])
 
                 # check result is OK!
                 else:
@@ -414,7 +442,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                     global_metrics['total_ok'] += 1
 
             # end loop of layer specific checks
-            if len(result_tagged_hc_records_for_layer) > 0:
+            if len(executable_service_checks) > 0:
                 layer_total_fail = service_metrics[layer]['total_fail'];
                 layer_total_ok = service_metrics[layer]['total_ok'];
                 layer_total_attempts = service_metrics[layer]['total_attempts'];
@@ -422,7 +450,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                 global_layer_total_ok = global_metrics[layer]['total_ok']
                 global_layer_total_fail = global_metrics[layer]['total_fail']
 
-                service_metrics[layer]['avg_resp_time_ms'] = round(service_metrics[layer]['total_req_time_ms'] / len(result_tagged_hc_records_for_layer),0)
+                service_metrics[layer]['avg_resp_time_ms'] = service_metrics[layer]['total_req_time_ms'] / len(executable_service_checks)
                 service_metrics[layer]['health_rating'] = calcHealthRating(layer_total_fail,layer_total_ok)
                 service_metrics[layer]['retry_percentage'] = calcRetryPercentage(layer_total_attempts,layer_total_fail,layer_total_ok)
                 global_metrics[layer]['health_rating'] = calcHealthRating(global_layer_total_fail,global_layer_total_ok)
@@ -440,12 +468,10 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
         global_total_ok = global_metrics['total_ok']
         global_total_fail = global_metrics['total_fail']
         global_total = (global_total_ok + global_total_fail)
-
-        for service_result in global_results_db['service_results']:
-            global_metrics['total_req_time_ms'] += service_metrics['total_req_time_ms']
+        global_metrics['total_req_time_ms'] += service_metrics['total_req_time_ms']
 
         if global_total > 0 and global_metrics['total_req_time_ms'] > 0:
-            global_metrics['avg_resp_time_ms'] = global_metrics['total_req_time_ms'] / (global_total_ok + global_total_fail)
+            global_metrics['avg_resp_time_ms'] = global_metrics['total_req_time_ms'] / global_total
 
         global_metrics['health_rating'] = calcHealthRating(global_total_fail,global_total_ok)
         global_metrics['retry_percentage'] = calcRetryPercentage(global_metrics['total_attempts'],global_total_fail,global_total_ok)
@@ -475,10 +501,10 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="healthchecksdb.json", help="Filename of layer check check database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthcheckerdb.json")
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicechecksdb.json", help="Filename of layer check check database")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicecheckerdb.json")
     parser.add_argument('-f', '--output-format', dest='output_format', default="json", help="json or yaml")
-    parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
+    parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
     parser.add_argument('-n', '--job-name', dest='job_name', default="no --job-name specified", help="descriptive name for this execution job")
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+')

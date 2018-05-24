@@ -15,7 +15,7 @@ Triaging *"where the hell does the problem reside"* in such a setup can be a dau
 - Is something busted in front of my load-balancer?
 - Is the name/fqdn even pointing to the correct balancer or whatever is in front of that?
 
-Ugh... well those kinds of questions is what this tool is intended to *assist* in helping to narrow down where to look next. These scripts collect relevant info from the swarm, generate all possible avenues of ingress across all layers for health checks to services on a swarm, and execute those healthchecks giving detailed results.
+Ugh... well those kinds of questions is what this tool is intended to *assist* in helping to narrow down where to look next. These scripts collect relevant info from the swarm, generate all possible avenues of ingress across all layers for service checks to services on a swarm, and execute those checks giving detailed results.
 
 By validating access directly through all possible layers of a Swarm/Traefik footprint you can help figure out what layers are having issues to properly stop the bleeding.
 
@@ -24,9 +24,9 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
 This script orchestrates all the following steps with one command:
 
 1. Invokes: `swarmstatedb.py` to collect raw docker swarm service state database
-1. Invokes: `healthchecksdb.py` to create database of health checks for the swarm state
-1. Invokes: `healthchecker.py` which executes the health checks, captures results
-1. Invokes: `healthcheckerreport.py` reads and prepares a simple report  
+1. Invokes: `servicechecksdb.py` to create database of service checks for the swarm state
+1. Invokes: `servicechecker.py` which executes the service checks, captures results
+1. Invokes: `servicecheckerreport.py` reads and prepares a simple report  
 
 All of the data generated from `analyze-swarm-traefik-state.py` is stored by default under the `output/` dir within this project.
 
@@ -37,7 +37,7 @@ All of the data generated from `analyze-swarm-traefik-state.py` is stored by def
   --swarm-name [name] \
   --service-filter '{"name":"some-service-name prefix"}' \
   --layers 0 1 2 3 4 \
-  --tags foo bar \
+  --tags health foo bar \
   --threads 30 \
   [--verbose]
 ```
@@ -46,7 +46,7 @@ The meaning for the options above are the same as and described in the separate 
 
 ## swarmstatedb.py
 
-This script will interrogate a target swarm for services matching `--service-filter` and dump a summarized subset of the relevant information in a JSON file which can then be consumed by `healthchecksdb.py`...or whatever else you want to do with it. The information it extracts contains published port information, traefik labels, image info, number of replicas amongst other things.
+This script will interrogate a target swarm for services matching `--service-filter` and dump a summarized subset of the relevant information in a JSON file which can then be consumed by `servicechecksdb.py`...or whatever else you want to do with it. The information it extracts contains published port information, traefik labels, image info, number of replicas amongst other things.
 
 ```
 ./swarmstatedb.py --output-filename [filename] \
@@ -83,37 +83,43 @@ Produces output:
     ...
 ```
 
-## healthchecksdb.py
+## servicechecksdb.py
 
-This script consumes the output from `swarmstatedb.py` and supplements it with information from `[swarm-name].yml`, and one or more relevant `service-state.yml` files to compute an exhaustive list of all possible ingress paths to invoke the appropriate health checks for each service exposed on the swarm via each layer of access (0:swarm direct, 1:traefik direct, 2:load-balancers, and 3:normal fqdns).
+This script consumes the output from `swarmstatedb.py` and supplements it with information from `[swarm-name].yml`, and one or more relevant `service-state.yml` files to compute an exhaustive list of all possible ingress paths to invoke the appropriate service checks for each service exposed on the swarm via each layer of access (0:swarm direct, 1:traefik direct, 2:load-balancers, and 3:normal fqdns).
 
-Depending on the number of ports your application exposes, number of swarm nodes and corresponding Traefik frontend `Host` header based labels you have applied to a service... this can result in easily over 1000+ pre-computed ingress check combinations.
+Depending on the number of ports your application exposes, number of swarm nodes and corresponding Traefik frontend `Host` header based labels you have applied to a service... this can result many pre-computed ingress check combinations.
 
-You can use the generated JSON file that contains all the necessary information (urls, headers, methods, payloads etc) to drive any monitoring system you'd like.... or just feed into the provided `healthchecker.py` to execute all the health checks and write a detailed report out... again in JSON.
+You can use the generated JSON file that contains all the necessary information (urls, headers, methods, payloads etc) to drive any monitoring system you'd like.... or just feed into the provided `servicechecker.py` to execute all the service checks and write a detailed report out... again in JSON.
 
 ```
-./healthchecksdb.py --input-filename [swarmstatedb output file] \
+./servicechecksdb.py --input-filename [swarmstatedb output file] \
   --swarm-info-repo-root /pathto/[dir containing swarm-name.yml files] \
   --service-state-repo-root /pathto/[dir containing service-state.yml files]
   --output-filename [filename] \
   [--layers 0 1 2 3 4] \
-  [--tags foo bar]
+  [--tags health foo bar]
 ```
 
 Options:
 * `--swarm-info-repo-root`: dir that anywhere in its subdirectories contains `[swarm-name].yml` files that contain the information as described in the `[swarm-name].yml` files section
 * `--service-state-repo-root`: dir that anywhere in its subdirectories contains `service-state.yml` files that contain the information as described in the `service-state.yml` files section
 * `--layers`: layers to generate actual checks for in the output database (default all)
-* `--tags`: only for health checks w/ given tags (default any)
+* `--tags`: only for service checks w/ given tags (default any)
 * `--input-filename`: path where the JSON output of `swarmstatedb.py` is
 * `--output-filename`: path where the JSON output will be written
 
 Decorates additional info to `swarmstatedb` output:
 ```
   ...
-  "context": "prod",
-  "context_version": "current",
-  "health_checks": {
+  "warnings": [],
+  "context": {
+      "name": "prod",
+      "version": "10",
+      "tags": [
+          "current"
+      ]
+  },
+  "service_checks": {
       "layer0": [
           {
               "layer": 0,
@@ -127,7 +133,8 @@ Decorates additional info to `swarmstatedb` output:
               "timeout": 5,
               "retries": 5,
               "tags" : [
-                  "foo"
+                  "foo",
+                  "health"
               ],
               "description": "my-app-prod-11-beta2_app swarm service port direct"
           },
@@ -146,7 +153,8 @@ Decorates additional info to `swarmstatedb` output:
               "timeout": 5,
               "retries": 5,
               "tags" : [
-                  "foo"
+                  "foo",
+                  "health"
               ],
               "description": "my-app-prod-11-beta2_app via traefik direct"
           },
@@ -165,7 +173,8 @@ Decorates additional info to `swarmstatedb` output:
               "timeout": 5,
               "retries": 5,
               "tags" : [
-                  "foo"
+                  "foo",
+                  "health"
               ],
               "description": "my-app-prod-11-beta2_app via load balancer direct"
           },
@@ -184,7 +193,8 @@ Decorates additional info to `swarmstatedb` output:
               "timeout": 5,
               "retries": 5,
               "tags" : [
-                  "foo"
+                  "foo",
+                  "health"
               ],
               "description": "my-app-prod-11-beta2_app via normal fqdn"
           },
@@ -203,13 +213,17 @@ Decorates additional info to `swarmstatedb` output:
                   "response_codes": [
                       200
                   ],
-                  "body_regex": "result = 100A"
+                  "body_evaluator": {
+                      "type": "contains",
+                      "value": "check-code=100A"
+                  }
               },
               "method": "POST",
               "timeout": 10,
               "retries": 5,
               "tags" : [
-                  "foo"
+                  "foo",
+                  "health"
               ],
               "description": "my-app-prod-11-beta2_app via layer 4 custom: https://my-app-prod-mode-a.test.com"
           },
@@ -219,33 +233,33 @@ Decorates additional info to `swarmstatedb` output:
   ...
 ```
 
-## healthchecker.py
+## servicechecker.py
 
-This script consumes the output from `healthchecksdb.py` uses it to actually execute all the defined health check requests (in parallel) defined in the `healthchecksdb.py` JSON output file. The results are written into a JSON file containing the detailed results and metrics of all health checks completed. Note depending on the number of checks the prior scripts pre-computed, this could result in a very large result file.
+This script consumes the output from `servicechecksdb.py` uses it to actually execute all the defined service check requests (in parallel) defined in the `servicechecksdb.py` JSON output file. The results are written into a JSON file containing the detailed results and metrics of all service checks completed. Note depending on the number of checks the prior scripts pre-computed, this could result in a very large result file.
 
 This file can be used to parse and feed into an alerting system or use however you see fit for your analysis needs.
 
-As a start a simple `healthcheckerreport.py` script is in this project which will give a summary report from the `healthchecksdb.py` output JSON file.
+As a start a simple `servicecheckerreport.py` script is in this project which will give a summary report from the `servicechecksdb.py` output JSON file.
 
 ```
-./healthchecker.py --input-filename [healthchecksdb output file] \
+./servicechecker.py --input-filename [servicechecksdb output file] \
   --job-name [optional name for this execution job] \
   --output-format [json or yaml: default json]
-  --max-retries [maximum retries per health check]
+  --max-retries [maximum retries per service check]
   --output-filename [report filename] \
   [--layers 0 1 2 3 4] \
-  [--tags foo bar] \
+  [--tags health foo bar] \
   [--threads N]
 ```
 
 Options:
-* `--max-retries`: max retries per health check, overrides the value in the input file
-* `--output-format`: json or yaml. Must be JSON if this will be fed into: `healthcheckerreport.py`
+* `--max-retries`: max retries per service check, overrides the value in the input file
+* `--output-format`: json or yaml. Must be JSON if this will be fed into: `servicecheckerreport.py`
 * `--job-name`: optional arbitrary job name
 * `--layers`: layers to actually invoke checks for (default all)
-* `--tags`: only execute health checks w/ given tags (default any)
+* `--tags`: only execute service checks w/ given tags (default any)
 * `--threads`: default 30, number of threads for checks, adjust if DOSing yourself
-* `--input-filename`: path where the JSON output of `healthchecksdb.py` is
+* `--input-filename`: path where the JSON output of `servicechecksdb.py` is
 * `--output-filename`: path where the JSON results will be written
 
 Produces (a ton of) output: (truncated for brevity)
@@ -256,6 +270,8 @@ Produces (a ton of) output: (truncated for brevity)
           "health_rating": 97.88732394366197,
           "total_fail": 6,
           "total_ok": 278,
+          "total_skipped": 0,
+          "total_skipped_no_replicas": 0,
           "avg_resp_time_ms": 1591.0816619718307,
           "total_req_time_ms": 451867.1919999999,
           "retry_percentage": 24.647887323943664,
@@ -266,6 +282,7 @@ Produces (a ton of) output: (truncated for brevity)
               "total_fail": 0,
               "retry_percentage": 14.285714285714285,
               "total_attempts": 32,
+              "total_skipped": 0,
               "failures": {}
           },
           "layer1": {
@@ -276,65 +293,88 @@ Produces (a ton of) output: (truncated for brevity)
 ```
 
 
-## healthcheckerreport.py
+## servicecheckerreport.py
 
-This script consumes the health check result output from `healthcheckerdb.py` and produces a simple markdown report dumped to the consul and output to a file.
+This script consumes the service check result output from `servicecheckerdb.py` and produces a simple markdown report dumped to the consul and output to a file.
 
 This report is pretty simplistic but gives a decent summary of the state of access to services on the target swarm.
 
 ```
-./healthcheckerreport.py --input-filename [healthcheckerdb result file] \
+./servicecheckerreport.py --input-filename [servicecheckerdb result file] \
   --verbose [flag, will dump CURL commands for all failed checks]
   --output-filename [report filename] \
 ```
 
 Produces output:
-```
-SOURCE: healthcheckerdb.json
 
+```
+SOURCE: servicecheckerdb.json
+
+  (N) = total replicas
 (f/t) = f:failures, t:total checks
  XXms = average round trip across checks
     h = health: percentage of checks that succeeded
-    a = attempts: total attempts per health check
+    a = attempts: total attempts per service check
     r = retries: percentage of attempts > 1 per check
 
 ----------------------------------------------------------
-20180515a-my-app-prod-11-beta2_app
-  Overall: h:98.6%  (4/284)  a:312  r:9.9%   1405.6ms
+my-app
+  Overall: h:98.6%  (10/692) a:775  r:12.0%  1168.8ms
 ----------------------------------------------------------
- - layer0: via swarm direct:   h:100.0% (0/28)   a:28   r:0.0%   
- - layer1: via traefik direct: h:100.0% (0/224)  a:244  r:8.9%   
- - layer2: via load balancers: h:100.0% (0/16)   a:16   r:0.0%   
- - layer3: via normal fqdns :  h:75.0%  (4/16)   a:24   r:50.0%  
+ - layer0: swarm direct:   h:100.0% (0/84)   a:98   r:16.7%  
+ - layer1: traefik direct: h:99.6%  (2/532)  a:582  r:9.4%   
+ - layer2: load balancers: h:100.0% (0/38)   a:41   r:7.9%   
+ - layer3: normal fqdns :  h:78.9%  (8/38)   a:54   r:42.1%  
+ - layer4: app proxies :   h:0%     (0/0)    a:0    r:0%     
 ----------------------------------------------------------
 
 ----------------------------------------------------------
-my-app-prod-11-beta2_app
-    100.0% (1) (previous) 1084.7ms
+my-app-pre-prod-10_app
+    100.0% (4) [previous] 862.2ms
 ----------------------------------------------------------
- - l0: h:100.0% (0/14)   a:14   r:0.0%   3497.0ms
- - l1: h:100.0% (0/84)   a:98   r:16.7%  674.0ms
- - l2: h:100.0% (0/6)    a:6    r:0.0%   1416.0ms
- - l3: h:100.0% (0/6)    a:6    r:0.0%   871.0ms
+ - l0: h:100.0% (0/28)   a:28   r:0.0%   1782.8ms
+ - l1: h:100.0% (0/168)  a:168  r:0.0%   761.8ms
+ - l2: h:100.0% (0/12)   a:12   r:0.0%   530.0ms
+ - l3: h:100.0% (0/12)   a:12   r:0.0%   451.1ms
+ - l4: h:0%     (0/0)    a:0    r:0%     0ms
 
- ----------------------------------------------------------
-my-app-pre-prod-12-beta3_app
-     97.7% (1) (current) 804.2ms
- ----------------------------------------------------------
-  - l0: h:100.0% (0/14)   a:14   r:0.0%   3695.0ms
-  - l1: h:100.0% (0/140)  a:146  r:4.3%   462.0ms
-  - l2: h:100.0% (0/10)   a:10   r:0.0%   1664.0ms
-  - l3: h:60.0%  (4/10)   a:18   r:80.0%  693.0ms
-       (3): (<class 'urllib.error.URLError'>, URLError(gaierror(8, 'nodename nor servname provided, or not known'),))
-           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-12-beta3.test.com/health
-           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-beta.test.com/health
-           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-joedev.test.com/health
-       (1): (<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))
-           curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://bitsofinfo.test.com/health
+----------------------------------------------------------
+my-app-prod-12-beta5_app
+    97.4% (1) [current] 1125.3ms
+----------------------------------------------------------
+ - l0: h:100.0% (0/28)   a:36   r:28.6%  3446.6ms
+ - l1: h:99.6%  (1/280)  a:305  r:8.9%   847.5ms
+      (1): (<class 'socket.timeout'>, timeout('The read operation timed out',))
+          curl -v --retry 3 -k -m 5 -X GET --header 'Host: my-app-pre-prod-12-beta3.test.com' --header 'test2: yes' https://myswarm1-node2.test.com:10001/health
+ - l2: h:100.0% (0/20)   a:23   r:15.0%  1799.6ms
+ - l3: h:60.0%  (8/20)   a:36   r:80.0%  1090.2ms
+      (6): (<class 'urllib.error.URLError'>, URLError(gaierror(8, 'nodename nor servname provided, or not known'),))
+          curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-12-beta3.test.com/health
+          curl -v --retry 3 -k -m 10 -X GET https://my-app-pre-prod-12-beta3.test.com/health
+          curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-beta.test.com/health
+          curl -v --retry 3 -k -m 10 -X GET https://my-app-pre-prod-beta.test.com/health
+          curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://my-app-pre-prod-joedev.test.com/health
+          curl -v --retry 3 -k -m 10 -X GET https://my-app-pre-prod-joedev.test.com/health
+      (2): (<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))
+          curl -v --retry 3 -k -m 5 -X GET --header 'test2: yes' https://bitsofinfo.test.com/health
+          curl -v --retry 3 -k -m 10 -X GET https://my-app-pre-prod-12-beta3.test.com/health
+ - l4: h:0%     (0/0)    a:0    r:0%     0ms
+
+----------------------------------------------------------
+my-app-prod-12-beta3_app
+    99.2% (1) [next] 1834.8ms
+----------------------------------------------------------
+ - l0: h:100.0% (0/28)   a:34   r:21.4%  3537.9ms
+ - l1: h:98.8%  (1/84)   a:109  r:29.8%  1403.6ms
+      (1): (<class 'socket.timeout'>, timeout('The read operation timed out',))
+          curl -v --retry 3 -k -m 5 -X GET --header 'Host: my-app-pre-prod-12-beta3.test.com' --header 'test2: yes' https://myswarm1-node2.test.com:10001/health
+ - l2: h:100.0% (0/6)    a:6    r:0.0%   706.5ms
+ - l3: h:100.0% (0/6)    a:6    r:0.0%   1052.3ms
+ - l4: h:0%     (0/0)    a:0    r:0%     0ms
 
 
- RAW RESULTS --> healthcheckerdb.json
- THE ABOVE ON DISK --> healthcheckerreport.md
+RAW RESULTS --> servicecheckerdb.json
+THE ABOVE ON DISK --> servicecheckerreport.md
 ```
 
 ## [swarm-name].yml files
@@ -376,7 +416,7 @@ service_ports:
       - "mode-a"
       - "mode-b"
 
-health_checks:
+service_checks:
   - ports: [443]
     path: "/health"
     layers: [0,1,2,3]
@@ -385,7 +425,27 @@ health_checks:
     method: "GET"
     timeout: 10
     retries: 3
-    tags: ["foo"]
+    tags: ["foo","health"]
+  - ports: [443]
+    layers: [0,1,2,3]
+    path: "/api/2.7/submit-report"
+    method: "POST"
+    headers:
+      - "Content-Type: text/json"
+    body: >
+      {
+        "request_data":"XXXXXX",
+        "text_version":"14a-c blah, blah, blah",
+      }
+    is_healthy:
+      response_codes: [200]
+      body_evaluator:
+        type: "jinja2"
+        template: "{% if service_record['context']['version']|string in response_data['as_string'] %}1{% else %}0{% endif %}"
+    timeout: 5
+    retries: 5
+    classifiers: ["mode-a"]
+    tags: ["version"]
   - ports: [443]
     layers: [4]
     path: "/api/2.7/submit-report"
@@ -400,11 +460,13 @@ health_checks:
       }
     is_healthy:
       response_codes: [200]
-      body_regex: "result = 100A"
+      body_evaluator:
+        type: "contains"
+        value: "result = 100A"
     timeout: 5
     retries: 5
     classifiers: ["mode-a"]
-    tags: ["bar"]
+    tags: ["bar","health"]
     contexts:
       prod:
         url_roots:

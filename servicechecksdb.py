@@ -31,13 +31,14 @@ aliases_2_formal_name = {}
 
 
 # De-deuplicates a list of objects, where the value for given key is the same
-def dedup(on_key,list_of_objects):
+def dedup(list_of_objects):
     to_return = []
     seen = set()
     for obj in list_of_objects:
-        if obj[on_key] not in seen:
+        asjson = json.dumps(obj, sort_keys=True)
+        if asjson not in seen:
             to_return.append(obj)
-            seen.add(obj[on_key])
+            seen.add(asjson)
     return to_return;
 
 # Gets subset of items from "all_items" which
@@ -54,21 +55,22 @@ def listContainsTokenIn(token_list,at_least_one_must_exist_in):
     for token in token_list:
         if token in at_least_one_must_exist_in:
             found = True
+            break
     return found
 
-# Returns list of service_state.health_checks objects for any applicable
+# Returns list of service_state.service_checks objects for any applicable
 # service_state declared service_port for the specified infrastructure `layer`
 # and `docker_service_name_or_traefik_fqdn`
-def getHealthChecksForServiceAnyPort(layer,docker_service_name_or_traefik_fqdn,service_state,tags,docker_service_data):
-    health_checks = []
+def getServiceChecksForServiceAnyPort(layer,docker_service_name_or_traefik_fqdn,service_state,tags,docker_service_data):
+    service_checks = []
     for service_port in service_state["service_ports"]:
-        health_checks.extend(getHealthChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state,tags,docker_service_data))
-    return dedup('path',health_checks)
+        service_checks.extend(getServiceChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state,tags,docker_service_data))
+    return dedup(service_checks)
 
-# Will return a list of service_state.health_checks objects for the specified
+# Will return a list of service_state.service_checks objects for the specified
 # service port, infrastructure layer and docker_service_name_or_traefik_fqdn
 #
-def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state,tags,docker_service_data):
+def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state,tags,docker_service_data):
     to_return = []
 
     # get the service_port info for the desired service_port
@@ -80,8 +82,13 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
 
     service_state_port_info = service_state["service_ports"][service_port]
 
-    # lets get all possible health_checks potentially supported for the given port and layer and tags
-    health_checks_for_port = getHealthChecksForPort(layer,service_port,service_state['health_checks'],tags)
+    # lets get all possible service_checks potentially supported for the given port and layer and tags
+    service_checks_for_port = getServiceChecksForPort(layer,service_port,service_state['service_checks'],tags)
+
+    # zero, log and return...
+    if len(service_checks_for_port) == 0:
+        print("No service_checks for: " + docker_service_name_or_traefik_fqdn + " layer:"+str(layer)+ " port:" + str(service_port) + " tags:" + str(tags))
+        return []
 
     # layer 4 is more unique
     # we handle differently as
@@ -91,8 +98,8 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
     # the name we are working with supports both classifiers
     # and contexts per the service naming convention
     if layer == 4:
-        for hc in health_checks_for_port:
-            can_use_health_checks = False
+        for hc in service_checks_for_port:
+            can_use_service_checks = False
 
             if 'classifiers' in hc:
                 if not listContainsTokenIn(hc['classifiers'],docker_service_name_or_traefik_fqdn):
@@ -106,39 +113,39 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
 
 
     # For layers 0-3 we need to do more exhaustive checking
-    # to determine if the health check is actually relevant
+    # to determine if the service check is actually relevant
     # for the given docker_service_name_or_traefik_fqdn
     # as the docker_service_name_or_traefik_fqdn itself
     # may or may NOT contain port/classifier information within it
     # (i.e. vanity traefik labels) and we use that to cross check the
-    # applicability of that target against the information in the health-check
+    # applicability of that target against the information in the service-check
     # meta-data object
     else:
         # If the service_port is directly and literally specified within the fqdn/docker-service-name
-        # we can proceed to further validate if the health-check spec qualifies
+        # we can proceed to further validate if the service-check spec qualifies
         # for this docker_service_name_or_traefik_fqdn
         if (str(service_port) in docker_service_name_or_traefik_fqdn):
 
-            can_use_health_checks = False
+            can_use_service_checks = False
             # no classiiers? just apply em
             if 'classifiers' not in service_state_port_info:
-                can_use_health_checks = True
+                can_use_service_checks = True
 
             else:
                 for classifier in service_state_port_info['classifiers']:
                     if classifier in docker_service_name_or_traefik_fqdn:
-                        can_use_health_checks = True
+                        can_use_service_checks = True
 
-            if can_use_health_checks:
-                for hc in health_checks_for_port:
+            if can_use_service_checks:
+                for hc in service_checks_for_port:
 
-                    # each health check itself can also have a classifier
+                    # each service check itself can also have a classifier
                     # that further narrows down if the HC is valid
                     if 'classifiers' in hc:
                         if not listContainsTokenIn(hc['classifiers'],docker_service_name_or_traefik_fqdn):
-                            can_use_health_checks = False
+                            can_use_service_checks = False
 
-                    if can_use_health_checks:
+                    if can_use_service_checks:
                         to_return.append(hc)
 
         # otherwise we need to fall back to classifiers
@@ -147,7 +154,7 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
 
             # no classifiers? just apply em
             if 'classifiers' not in service_state_port_info:
-                for hc in health_checks_for_port:
+                for hc in service_checks_for_port:
                     to_return.append(hc)
 
             # we have classifiers
@@ -155,7 +162,7 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
 
                 all_classifiers = []
                 all_classifiers.extend(service_state_port_info['classifiers'])
-                for hc in health_checks_for_port:
+                for hc in service_checks_for_port:
                     if 'classifiers' in hc:
                         all_classifiers.extend(hc['classifiers'])
 
@@ -175,35 +182,35 @@ def getHealthChecksForServicePort(layer,service_port,docker_service_name_or_trae
                         #
                         # TODO: remove this one traefik/fqdn name generation on service creation
                         # takes into account classifiers and ports properly
-                        can_use_health_checks = True
+                        can_use_service_checks = True
                         other_than = list(filter(lambda x: x != service_port, service_state["service_ports"].keys()))
                         for p in other_than:
                             if (str(p) in docker_service_name_or_traefik_fqdn):
-                                can_use_health_checks = False
+                                can_use_service_checks = False
                                 break
 
                         # ok... bag em if we can use them
-                        if can_use_health_checks:
+                        if can_use_service_checks:
 
-                            for hc in health_checks_for_port:
-                                # each health check itself can also have a classifier
+                            for hc in service_checks_for_port:
+                                # each service check itself can also have a classifier
                                 # that further narrows down if the HC is valid
                                 if 'classifiers' in hc:
                                     if not listContainsTokenIn(hc['classifiers'],docker_service_name_or_traefik_fqdn):
-                                        can_use_health_checks = False
+                                        can_use_service_checks = False
 
-                            if can_use_health_checks:
+                            if can_use_service_checks:
                                 to_return.append(hc)
 
     # de-dup and return
-    return dedup('path',to_return)
+    return dedup(to_return)
 
-# Gets all applicable health check objects for the given port
-def getHealthChecksForPort(layer,port,service_state_health_checks,tags):
+# Gets all applicable service check objects for the given port
+def getServiceChecksForPort(layer,port,service_state_service_checks,tags):
     hcs_toreturn = []
-    for hc in service_state_health_checks:
-        if port in hc['ports'] and layer in hc['layers']:
 
+    for hc in service_state_service_checks:
+        if port in hc['ports'] and layer in hc['layers']:
             # filter by tags?
             hc_qualifies = True
             if tags and len(tags) > 0: # we have tags we must comply with
@@ -218,37 +225,37 @@ def getHealthChecksForPort(layer,port,service_state_health_checks,tags):
 
     return hcs_toreturn;
 
-# Constructs a health check entry object for placement in the output-file
+# Constructs a service check entry object for placement in the output-file
 #
 # layer = the layer
 # host_header = if applicable
 # url_root = http(s)://fqdn[:port]
-# target_container_port = the backend port this healthcheck is ultimately targeting
-# healthcheck_info = the 'healthcheck_info' object from service_state.health_checks
+# target_container_port = the backend port this servicecheck is ultimately targeting
+# servicecheck_info = the 'servicecheck_info' object from service_state.service_checks
 # description = arbitrary information string context
-def toHealthCheckEntry(layer,host_header,url_root,target_container_port,healthcheck_info,description):
+def toServiceCheckEntry(layer,host_header,url_root,target_container_port,servicecheck_info,description):
     hc_entry = {}
     hc_entry['layer'] = layer;
-    hc_entry['url'] = url_root + healthcheck_info['path']
+    hc_entry['url'] = url_root + servicecheck_info['path']
     hc_entry['target_container_port'] = target_container_port
     hc_entry['host_header'] = host_header
-    if 'headers' in healthcheck_info:
-        hc_entry['headers'] = healthcheck_info['headers']
-    if 'basic_auth' in healthcheck_info:
-        hc_entry['basic_auth'] = healthcheck_info['basic_auth']
+    if 'headers' in servicecheck_info:
+        hc_entry['headers'] = servicecheck_info['headers']
+    if 'basic_auth' in servicecheck_info:
+        hc_entry['basic_auth'] = servicecheck_info['basic_auth']
 
-    if 'body' in healthcheck_info:
-        hc_entry['body'] = re.sub("\s+"," ",healthcheck_info['body'])
+    if 'body' in servicecheck_info:
+        hc_entry['body'] = re.sub("\s+"," ",servicecheck_info['body'])
 
-    if 'is_healthy' in healthcheck_info:
-        hc_entry['is_healthy'] = healthcheck_info['is_healthy']
-    hc_entry['method'] = healthcheck_info['method']
-    hc_entry['timeout'] = healthcheck_info['timeout']
-    hc_entry['retries'] = healthcheck_info['retries']
+    if 'is_healthy' in servicecheck_info:
+        hc_entry['is_healthy'] = servicecheck_info['is_healthy']
+    hc_entry['method'] = servicecheck_info['method']
+    hc_entry['timeout'] = servicecheck_info['timeout']
+    hc_entry['retries'] = servicecheck_info['retries']
     hc_entry['description'] = description
 
-    if 'tags' in healthcheck_info:
-        hc_entry['tags'] = healthcheck_info['tags']
+    if 'tags' in servicecheck_info:
+        hc_entry['tags'] = servicecheck_info['tags']
 
     return hc_entry
 
@@ -345,24 +352,31 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         # for the given docker service data record
         service_state = getServiceState(docker_service_data)
 
+        # setup warnings so mis-configurations can be logged
+        docker_service_data['warnings'] = set()
+
         # Analyze the contexts/versions and decorate
         # the docker_service_data w/ this additional information
-        docker_service_data['context'] = None
-        docker_service_data['context_version'] = None
+        docker_service_data['context'] = {'name':None,'version':None,'tags':[]}
         for context_name in service_state['contexts']:
 
-            if docker_service_data["context_version"] is not None:
-                break;
+            # no need to continue we've already found
+            # the service in the context
+            #if docker_service_data["context"]["tag"] is not None:
+            #    break;
 
+            # if the context-name is even relevant for the target swarm...
             if context_name in swarm_info['contexts']:
                 context = service_state['contexts'][context_name]
                 if context_name in docker_service_name:
-                    docker_service_data['context'] = context_name
-                    for version_name in context['versions']:
-                        version = context['versions'][version_name]
-                        if version != '':
-                            if version.replace(".","-") in docker_service_name:
-                                docker_service_data["context_version"] = version_name
+                    docker_service_data['context']['name'] = context_name
+                    for version_tag in context['versions']:
+                        version_number = context['versions'][version_tag]
+                        if version_number != '':
+                            if version_number.replace(".","-") in docker_service_name:
+                                docker_service_data['context']['tags'].append(version_tag)
+                                docker_service_data['context']['version'] = version_number
+
 
         # Determine the traefik port based on internal/external
         traefik_port = swarm_info['traefik_swarm_port_internal_https']
@@ -375,12 +389,12 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
             load_balancer = swarm_info['swarm_lb_endpoint_external']
 
 
-        service_state_healthchecks_info = None
-        if 'health_checks' in service_state:
-            service_state_healthchecks_info = service_state['health_checks']
+        service_state_servicechecks_info = None
+        if 'service_checks' in service_state:
+            service_state_servicechecks_info = service_state['service_checks']
 
-        if len(service_state_healthchecks_info) == 0:
-            print("No health_checks could be found in service state for: " + docker_service_data['name'] + " skipping...")
+        if len(service_state_servicechecks_info) == 0:
+            print("No service_checks could be found in service state for: " + docker_service_data['name'] + " skipping...")
             continue;
 
         # if none were found... skip and move on
@@ -393,8 +407,8 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
             continue
 
 
-        # init health_checks
-        docker_service_data['health_checks'] = {
+        # init service_checks
+        docker_service_data['service_checks'] = {
                                                 'layer0':[],
                                                 'layer1':[],
                                                 'layer2':[],
@@ -403,8 +417,6 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                                                 }
 
 
-        # setup warnings so mis-configurations can be logged
-        docker_service_data['warnings'] = set()
 
         # layer-0: swarm direct checks
         if 0 in layers_to_process:
@@ -414,10 +426,10 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                     swarm_pub_port = int(p.split(":")[0])
                     target_container_port = int(p.split(":")[1])
 
-                    for hc in getHealthChecksForServicePort(0,target_container_port,docker_service_name,service_state,tags,docker_service_data):
+                    for hc in getServiceChecksForServicePort(0,target_container_port,docker_service_name,service_state,tags,docker_service_data):
                         url = service_state['service_ports'][target_container_port]["protocol"]+"://"+host+":"+str(swarm_pub_port)
-                        hc_entry = toHealthCheckEntry(0,None,url,target_container_port,hc,docker_service_name+" swarm service port direct")
-                        docker_service_data['health_checks']['layer0'].append(hc_entry)
+                        hc_entry = toServiceCheckEntry(0,None,url,target_container_port,hc,docker_service_name+" swarm service port direct")
+                        docker_service_data['service_checks']['layer0'].append(hc_entry)
 
 
 
@@ -425,36 +437,36 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         if 1 in layers_to_process:
             for host in getSwarmHostFQDNs(swarm_name):
                 for fqdn in docker_service_data['traefik_host_labels']:
-                    for hc in getHealthChecksForServiceAnyPort(1,fqdn,service_state,tags,docker_service_data):
-                        hc_entry = toHealthCheckEntry(1,fqdn,"https://"+host+":"+str(traefik_port),None,hc,docker_service_name+" via traefik swarm port")
-                        docker_service_data['health_checks']['layer1'].append(hc_entry)
+                    for hc in getServiceChecksForServiceAnyPort(1,fqdn,service_state,tags,docker_service_data):
+                        hc_entry = toServiceCheckEntry(1,fqdn,"https://"+host+":"+str(traefik_port),None,hc,docker_service_name+" via traefik swarm port")
+                        docker_service_data['service_checks']['layer1'].append(hc_entry)
 
         # layer-2: load-balancers
         if 2 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
-                for hc in getHealthChecksForServiceAnyPort(2,fqdn,service_state,tags,docker_service_data):
-                    hc_entry = toHealthCheckEntry(2,fqdn,"https://"+load_balancer,None,hc,docker_service_name+" via load balancer")
-                    docker_service_data['health_checks']['layer2'].append(hc_entry)
+                for hc in getServiceChecksForServiceAnyPort(2,fqdn,service_state,tags,docker_service_data):
+                    hc_entry = toServiceCheckEntry(2,fqdn,"https://"+load_balancer,None,hc,docker_service_name+" via load balancer")
+                    docker_service_data['service_checks']['layer2'].append(hc_entry)
 
         # layer-3: straight, FQDN access
         if 3 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
-                for hc in getHealthChecksForServiceAnyPort(3,fqdn,service_state,tags,docker_service_data):
-                    hc_entry = toHealthCheckEntry(3,None,"https://"+fqdn,None,hc,docker_service_name+" via normal fqdn access")
-                    docker_service_data['health_checks']['layer3'].append(hc_entry)
+                for hc in getServiceChecksForServiceAnyPort(3,fqdn,service_state,tags,docker_service_data):
+                    hc_entry = toServiceCheckEntry(3,None,"https://"+fqdn,None,hc,docker_service_name+" via normal fqdn access")
+                    docker_service_data['service_checks']['layer3'].append(hc_entry)
 
         # layer-4: these are custom and vary based on context
         # typically another proxy beyond layer3 so the root url
-        # is static in the health check config and tied to the context
+        # is static in the service check config and tied to the context
         # vs. being calculated like the other layers above
         if 4 in layers_to_process:
-            for hc in getHealthChecksForServiceAnyPort(4,docker_service_name,service_state,tags,docker_service_data):
+            for hc in getServiceChecksForServiceAnyPort(4,docker_service_name,service_state,tags,docker_service_data):
                 contexts = hc['contexts']
                 for context_name in contexts:
                     if context_name in docker_service_name:
                         for url_root in contexts[context_name]['url_roots']:
-                            hc_entry = toHealthCheckEntry(4,None,url_root,None,hc,docker_service_name+" via layer 4 custom: " + url_root)
-                            docker_service_data['health_checks']['layer4'].append(hc_entry)
+                            hc_entry = toServiceCheckEntry(4,None,url_root,None,hc,docker_service_name+" via layer 4 custom: " + url_root)
+                            docker_service_data['service_checks']['layer4'].append(hc_entry)
 
 
     # to json
@@ -477,9 +489,9 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input-filename', dest='input_filename', default="swarmstatedb.json")
     parser.add_argument('-s', '--service-state-repo-root', dest='service_state_repo_root', required=True)
     parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True)
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="healthchecksdb.json")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicechecksdb.json")
     parser.add_argument('-l', '--layers', nargs='+')
-    parser.add_argument('-g', '--tags', nargs='+')
+    parser.add_argument('-g', '--tags', nargs='+', default=["health"])
     args = parser.parse_args()
 
     generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags)

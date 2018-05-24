@@ -10,9 +10,9 @@ import getopt, sys
 import ssl
 import datetime
 import swarmstatedb
-import healthchecksdb
-import healthchecker
-import healthcheckerreport
+import servicechecksdb
+import servicechecker
+import servicecheckerreport
 import os
 
 
@@ -29,9 +29,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-dir', dest='output_dir', default="output")
     parser.add_argument('-v', '--verbose', action='store_true')
     parser.add_argument('-l', '--layers', nargs='+')
-    parser.add_argument('-g', '--tags', nargs='+')
+    parser.add_argument('-g', '--tags', nargs='+', default=["health"])
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
-    parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state health check configs")
+    parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
 
     args = parser.parse_args()
 
@@ -49,17 +49,17 @@ if __name__ == '__main__':
     swarmstatedb.generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,swarmstatedb_file)
 
     # generate layer checks db
-    print("\nInvoking healthchecksdb.generate().....")
-    healthchecksdb_file = path_prefix+"02_healthchecksdb.json"
-    healthchecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,healthchecksdb_file,args.layers,args.tags)
+    print("\nInvoking servicechecksdb.generate().....")
+    servicechecksdb_file = path_prefix+"02_servicechecksdb.json"
+    servicechecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,servicechecksdb_file,args.layers,args.tags)
 
     # execute actual checks
-    print("\nInvoking healthchecker.execute().....")
-    healthcheckerdb_file = path_prefix+"03_healthcheckerdb.json"
-    healthchecker.max_retries = args.max_retries
-    healthchecker.execute(healthchecksdb_file,healthcheckerdb_file,"json",args.max_retries,job_name,args.layers,args.threads,args.tags)
+    print("\nInvoking servicechecker.execute().....")
+    servicecheckerdb_file = path_prefix+"03_servicecheckerdb.json"
+    servicechecker.max_retries = args.max_retries
+    servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_name,args.layers,args.threads,args.tags)
 
     # make the report
-    print("\nInvoking healthcheckerreport.execute().....")
-    healthcheckereport_file = path_prefix+"04_healthcheckerreport.md"
-    healthcheckerreport.generate(healthcheckerdb_file,healthcheckereport_file,args.verbose)
+    print("\nInvoking servicecheckerreport.execute().....")
+    servicecheckereport_file = path_prefix+"04_servicecheckerreport.md"
+    servicecheckerreport.generate(servicecheckerdb_file,servicecheckereport_file,args.verbose)
