@@ -187,7 +187,6 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
                         for p in other_than:
                             if (str(p) in docker_service_name_or_traefik_fqdn):
                                 can_use_service_checks = False
-                                print(hc['path'])
                                 break
 
                         # ok... bag em if we can use them
