@@ -19,6 +19,37 @@ Ugh... well those kinds of questions is what this tool is intended to *assist* i
 
 By validating access directly through all possible layers of a Swarm/Traefik footprint you can help figure out what layers are having issues to properly stop the bleeding.
 
+## Architecture overview
+
+This suite of modules is built around the following simple architecture
+
+### Physical
+
+1. You have a Docker Swarm cluster made up of N hosts
+1. The Swarm has two classifications of docker overlay networks on it
+  - `external`: for services that receive requests from outside sources
+  - `internal`: for services that receive requests from internal sources
+1. Each network has a single designated [Traefik](https://traefik.io/) service that is published on a fixed swarm port. This Traefik service proxies all inbound HTTP/S traffic to other application services on that shared `internal` or `external` network.
+1. Each fixed `internal/external` Traefik published port on the swarm (lets say `external` is 45900 and `internal` is 45800) receives its traffic from a corresponding designated internal/external load-balancer device (hardware or software) that resides on the network.
+1. DNS for your deployed services points an appropriate device that will eventually proxy traffic to the appropriate internal or external load-balancer
+1. Upstream from the load-balancers may be potentially other devices, firewalls, wafs, app proxies etc
+1. Each of these DNS names are specified within a `traefik.[servicename].frontend.rule=Host:[name1],[nameN]..`label on each service
+
+### Logical
+
+1. Your applications are deployed as docker services on a target swarm.
+1. An application runs within the scope of logical "context" (i.e. pre-prod, or prod, or qa etc)
+1. A "context" generally implies a set of corresponding configuration that is different in some way to any other "context"
+1. An application can have an optional "classifier" to give it additional categorization
+1. A binary Docker image (i.e. my-app:10.0-beta-1) paired with a "context" and optional "classifier" yields an unique deployed docker service.
+  - a deployed docker service has a naming convention `[appname]-[context]-[version][-classifier]` (i.e. `my-app-pre-prod-10-0-beta-1`)
+1. The combination of a Docker image version, in scope of a "context" falls into one of three categories:
+  - `current`: The current version of the application receiving live traffic bound to FQDNs representative of live traffic (i.e. www.my-app.test.com)
+  - `previous`: The previous version of the application which receives traffic bound to unique FQDNs (i.e. my-app-pv.test.com)
+  - `next`: The upcoming version of the application which receives traffic bound to special testing FQDNs (i.e. my-app-nv.test.com)
+1. "Where" HTTP/S traffic goes for given standard FQDNs can easily be controlled by hot-swapping Traefik frontend rules via Docker service labels
+
+
 ## analyze-swarm-traefik-state.py
 
 This script orchestrates all the following steps with one command:
