@@ -147,6 +147,11 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
 
                     if can_use_service_checks:
                         to_return.append(hc)
+                        print('yes')
+                    else:
+                        print('no' + str(hc('path')))
+            else:
+                print('no' + str(hc('path')))
 
         # otherwise we need to fall back to classifiers
         # as they are related to ports and their availability
@@ -187,6 +192,7 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
                         for p in other_than:
                             if (str(p) in docker_service_name_or_traefik_fqdn):
                                 can_use_service_checks = False
+                                print(hc['path'])
                                 break
 
                         # ok... bag em if we can use them
@@ -199,8 +205,8 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
                                     if not listContainsTokenIn(hc['classifiers'],docker_service_name_or_traefik_fqdn):
                                         can_use_service_checks = False
 
-                            if can_use_service_checks:
-                                to_return.append(hc)
+                                if can_use_service_checks:
+                                    to_return.append(hc)
 
     # de-dup and return
     return dedup(to_return)
