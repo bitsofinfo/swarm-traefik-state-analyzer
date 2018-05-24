@@ -147,11 +147,6 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
 
                     if can_use_service_checks:
                         to_return.append(hc)
-                        print('yes')
-                    else:
-                        print('no' + str(hc('path')))
-            else:
-                print('no' + str(hc('path')))
 
         # otherwise we need to fall back to classifiers
         # as they are related to ports and their availability
