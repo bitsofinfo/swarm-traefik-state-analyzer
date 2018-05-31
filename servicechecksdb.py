@@ -73,6 +73,12 @@ def getServiceChecksForServiceAnyPort(layer,docker_service_name_or_traefik_fqdn,
 def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_traefik_fqdn,service_state,tags,docker_service_data):
     to_return = []
 
+    if 'service_ports' not in service_state:
+        msg = "MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml has no 'service_ports' declared"
+        docker_service_data['warnings'].add(msg)
+        print(msg)
+        return []
+
     # get the service_port info for the desired service_port
     if not service_port in service_state["service_ports"]:
         msg = "MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml declared port: " + str(service_port) + " IS NOT PUBLISHED according to swarm!"
