@@ -16,6 +16,7 @@ import socket
 import base64
 from multiprocessing import Pool, Process
 from jinja2 import Template
+from urllib.parse import urlparse
 
 #convert string to hex
 def toHex(s):
@@ -141,6 +142,7 @@ def execServiceCheck(service_record_and_health_check):
 
     # ok now do the attempts based on configured retries
     attempts = 0
+    dns_lookup_result = None
     while (attempts < retries):
 
         try:
@@ -149,6 +151,14 @@ def execServiceCheck(service_record_and_health_check):
 
             if attempts > 1:
                 print("   retryring: " + hc['url'])
+
+            # log what it resolves to...
+            dns_lookup_result = None
+            try:
+                lookup = urlparse(hc['url']).netloc.split(":")[0]
+                dns_lookup_result = socket.gethostbyname(lookup)
+            except Exception as e:
+                dns_lookup_result = str(sys.exc_info()[:2])
 
             # do the request
             start = datetime.datetime.now()
@@ -203,7 +213,8 @@ def execServiceCheck(service_record_and_health_check):
                                  "ms":ms,
                                  "attempts":attempts,
                                  "response": response_data,
-                                 "headers": response.getheaders(),}
+                                 "headers": response.getheaders(),
+                                 "dns":dns_lookup_result}
                 break
             else:
                 hc['result'] = { "success":False,
@@ -212,14 +223,16 @@ def execServiceCheck(service_record_and_health_check):
                                  "ms":ms,
                                  "attempts":attempts,
                                  "response": response_data,
-                                 "headers": response.getheaders()}
+                                 "headers": response.getheaders(),
+                                 "dns":dns_lookup_result}
 
         except Exception as e:
             ms = (datetime.datetime.now() - start).total_seconds() * 1000
             hc['result'] = { "success":False,
                              "ms":ms,
                              "attempts":attempts,
-                             "error": str(sys.exc_info()[:2])}
+                             "error": str(sys.exc_info()[:2]),
+                             "dns": dns_lookup_result }
             if type(e) is urllib.error.HTTPError:
                 hc['result']['code'] = e.code
                 hc['result']['response'] = readHTTPResponse(e)
