@@ -393,7 +393,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         if 'service_checks' in service_state:
             service_state_servicechecks_info = service_state['service_checks']
 
-        if len(service_state_servicechecks_info) == 0:
+        if service_state_servicechecks_info is not None and len(service_state_servicechecks_info) == 0:
             print("No service_checks could be found in service state for: " + docker_service_data['name'] + " skipping...")
             continue;
 
