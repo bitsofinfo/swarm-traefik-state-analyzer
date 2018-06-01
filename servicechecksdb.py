@@ -361,6 +361,11 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         # setup warnings so mis-configurations can be logged
         docker_service_data['warnings'] = set()
 
+        # copy over some basic info
+        docker_service_data['formal_name'] = service_state['formal_name']
+        docker_service_data['app_type'] = service_state['app_type']
+        docker_service_data['aliases'] = service_state['aliases']
+
         # Analyze the contexts/versions and decorate
         # the docker_service_data w/ this additional information
         docker_service_data['context'] = {'name':None,'version':None,'tags':[]}

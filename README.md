@@ -139,7 +139,7 @@ Options:
 * `--input-filename`: path where the JSON output of `swarmstatedb.py` is
 * `--output-filename`: path where the JSON output will be written
 
-Decorates additional info to `swarmstatedb` output:
+Decorates additional info to `swarmstatedb` output from `service-state.yml` files:
 ```
   ...
   "warnings": [],
@@ -150,6 +150,12 @@ Decorates additional info to `swarmstatedb` output:
           "current"
       ]
   },
+  "formal_name": "my-app",
+  "app_type": "go",
+  "aliases": [
+      "my-alias2",
+      "my-alias1"
+  ],
   "service_checks": {
       "layer0": [
           {
@@ -433,6 +439,7 @@ swarm_host_info:
 
 ```
 formal_name: "my-servicename"
+app_type: "go"
 
 aliases:
   - "my-alias1"
