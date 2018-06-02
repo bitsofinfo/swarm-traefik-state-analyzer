@@ -21,7 +21,7 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
 
 * [Architecture overview](#architecture)
   * [Swarm Info files](#swarminfo)
-  * [Service State files](#swarminfo)
+  * [Service State files](#servicestate)
 * [Modules/Scripts overview](#modules)
   * [swarmstatedb.py](#swarmstatedb)
   * [servicechecksdb.py](#servicechecksdb)
