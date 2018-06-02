@@ -19,7 +19,11 @@ Ugh... well those kinds of questions is what this tool is intended to *assist* i
 
 By validating access directly through all possible layers of a Swarm/Traefik footprint you can help figure out what layers are having issues to properly stop the bleeding.
 
-## Architecture overview
+* [Architecture overview](#architecture)
+* [Modules/Scripts](#modules)
+* [analyze-swarm-traefik-state.py](#analyze-swarm-traefik-state)
+
+## <a id="architecture"></a>Architecture overview
 
 This suite of modules is built around the following simple architecture
 
@@ -49,7 +53,7 @@ This suite of modules is built around the following simple architecture
     * `next`: The upcoming version of the application which receives traffic bound to special testing FQDNs (i.e. my-app-nv.test.com)
 *  "Where" HTTP/S traffic goes for given standard FQDNs can easily be controlled by hot-swapping Traefik frontend rules via Docker service labels
 
-## Modules/Scripts
+## <a id="modules"></a>Modules/Scripts
 
 This project provides multiple modules who's input/output can be used between each other or each can just be used independently on their own.
 
@@ -61,7 +65,7 @@ This project provides multiple modules who's input/output can be used between ea
 1. `servicecheckerdb2prometheus.py`: monitors a directory for `servicechecker` output and exposes as Prometheus`/metrics`
 
 
-## analyze-swarm-traefik-state.py
+## <a id="analyze-swarm-traefik-state"></a>analyze-swarm-traefik-state.py
 
 This script orchestrates all the following steps with one command:
 
@@ -93,7 +97,7 @@ This project also provides the `servicecheckerdb2prometheus.py` module which wil
 ![grafana_dashboard](docs/grafanadb1.png)
 
 
-## swarmstatedb.py
+## <a id="swarmstatedb"></a>swarmstatedb.py
 
 This script will interrogate a target swarm for services matching `--service-filter` and dump a summarized subset of the relevant information in a JSON file which can then be consumed by `servicechecksdb.py`...or whatever else you want to do with it. The information it extracts contains published port information, traefik labels, image info, number of replicas amongst other things.
 
@@ -132,7 +136,7 @@ Produces output:
     ...
 ```
 
-## servicechecksdb.py
+## <a id="servicechecksdb"></a>servicechecksdb.py
 
 This script consumes the output from `swarmstatedb.py` and supplements it with information from `[swarm-name].yml`, and one or more relevant `service-state.yml` files to compute an exhaustive list of all possible ingress paths to invoke the appropriate service checks for each service exposed on the swarm via each layer of access (0:swarm direct, 1:traefik direct, 2:load-balancers, and 3:normal fqdns).
 
@@ -288,7 +292,7 @@ Decorates additional info to `swarmstatedb` output from `service-state.yml` file
   ...
 ```
 
-## servicechecker.py
+## <a id="servicechecker"></a>servicechecker.py
 
 This script consumes the output from `servicechecksdb.py` uses it to actually execute all the defined service check requests (in parallel) defined in the `servicechecksdb.py` JSON output file. The results are written into a JSON file containing the detailed results and metrics of all service checks completed. Note depending on the number of checks the prior scripts pre-computed, this could result in a very large result file.
 
@@ -348,7 +352,7 @@ Produces (a ton of) output: (truncated for brevity)
 ```
 
 
-## servicecheckerreport.py
+## <a id="servicecheckerreport"></a>servicecheckerreport.py
 
 This script consumes the service check result output from `servicecheckerdb.py` and produces a simple markdown report dumped to the consul and output to a file.
 
@@ -432,7 +436,9 @@ RAW RESULTS --> servicecheckerdb.json
 THE ABOVE ON DISK --> servicecheckerreport.md
 ```
 
-## [swarm-name].yml files
+## <a id="servicecheckerdb2prometheus"></a>servicecheckerdb2prometheus.py
+
+## <a id="swarminfo"></a>[swarm-name].yml files
 
 ```
 SWARM_MGR_URI: "http://myswarm1.test.com:[port]"
@@ -453,7 +459,7 @@ swarm_host_info:
 
 ```
 
-## service-state.yml files
+## <a id="servicestate"></a>service-state.yml files
 
 ```
 formal_name: "my-servicename"
