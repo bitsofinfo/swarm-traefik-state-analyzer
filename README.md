@@ -20,8 +20,15 @@ Ugh... well those kinds of questions is what this tool is intended to *assist* i
 By validating access directly through all possible layers of a Swarm/Traefik footprint you can help figure out what layers are having issues to properly stop the bleeding.
 
 * [Architecture overview](#architecture)
-* [Modules/Scripts](#modules)
-* [analyze-swarm-traefik-state.py](#analyze-swarm-traefik-state)
+  * [Swarm Info files](#swarminfo)
+  * [Service State files](#swarminfo)
+* [Modules/Scripts overview](#modules)
+  * [swarmstatedb.py](#swarmstatedb)
+  * [servicechecksdb.py](#servicechecksdb)
+  * [servicechecker.py](#servicechecker)
+  * [servicecheckerreport.py](#servicecheckerreport)
+  * [analyze-swarm-traefik-state.py](#analyze-swarm-traefik-state)
+  * [servicechecker2prometheus.py](#servicechecker2prometheus)
 
 ## <a id="architecture"></a>Architecture overview
 
