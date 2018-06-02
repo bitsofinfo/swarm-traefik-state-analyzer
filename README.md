@@ -448,6 +448,12 @@ swarm_host_info:
 formal_name: "my-servicename"
 app_type: "go"
 
+classifiers:
+  mode-a:
+    desc: "operation mode A"
+  mode-b:
+    desc: "operation mode B"
+
 aliases:
   - "my-alias1"
   - "my-alias2"
