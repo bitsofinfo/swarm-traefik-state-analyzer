@@ -88,6 +88,7 @@ Options:
 * `--service-filter`: filters (dict) – Filters to process on the nodes list. Valid filters: id, name , label and mode.
 * `--swarm-name`: the logical swarm name you are interrogating
 * `--output-filename`: path where the JSON output will be written
+* `--minstdout`: minimize the amount of STDOUT output
 
 Produces output:
 ```
@@ -135,6 +136,7 @@ Options:
 * `--tags`: only for service checks w/ given tags (default any)
 * `--input-filename`: path where the JSON output of `swarmstatedb.py` is
 * `--output-filename`: path where the JSON output will be written
+* `--minstdout`: minimize the amount of STDOUT output
 
 Decorates additional info to `swarmstatedb` output from `service-state.yml` files:
 ```
@@ -295,6 +297,7 @@ Options:
 * `--threads`: default 30, number of threads for checks, adjust if DOSing yourself
 * `--input-filename`: path where the JSON output of `servicechecksdb.py` is
 * `--output-filename`: path where the JSON results will be written
+* `--minstdout`: minimize the amount of STDOUT output
 
 Produces (a ton of) output: (truncated for brevity)
 ```
@@ -338,6 +341,9 @@ This report is pretty simplistic but gives a decent summary of the state of acce
   --verbose [flag, will dump CURL commands for all failed checks]
   --output-filename [report filename] \
 ```
+
+Options:
+* `--minstdout`: minimize the amount of STDOUT output
 
 Produces output:
 
@@ -415,10 +421,10 @@ THE ABOVE ON DISK --> servicecheckerreport.md
 
 This script orchestrates all the following steps with one command:
 
-1. Invokes: `swarmstatedb.py` to collect raw docker swarm service state database
-1. Invokes: `servicechecksdb.py` to create database of service checks for the swarm state
-1. Invokes: `servicechecker.py` which executes the service checks, captures results
-1. Invokes: `servicecheckerreport.py` reads and prepares a simple report  
+1. Invokes: [swarmstatedb.py](#swarmstatedb) to collect raw docker swarm service state database
+1. Invokes: [servicechecksdb.py](#servicechecksdb)to create database of service checks for the swarm state
+1. Invokes: [servicechecker.py](#servicechecker) which executes the service checks, captures results
+1. Invokes: [servicecheckerreport.py](#servicecheckerreport) reads and prepares a simple report  
 
 All of the data generated from `analyze-swarm-traefik-state.py` is stored by default under the `output/` dir within this project.
 
