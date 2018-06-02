@@ -30,7 +30,7 @@ def fo(layer,db):
     return ("h:"+str(r(l['health_rating']))+ "%").ljust(9) + ("("+str(l['total_fail']) + "/" + str(l['total_ok']+l['total_fail']) +")").ljust(9) + ("a:" + str(l['total_attempts'])).ljust(7) + retry_percentage.ljust(8) + " " +resp_time
 
 # does the bulk of the work
-def generate(input_filename,output_filename,verbose):
+def generate(input_filename,output_filename,verbose,minimize_stdout):
     # output for report
     report_str = io.StringIO()
 
@@ -112,7 +112,8 @@ def generate(input_filename,output_filename,verbose):
     report_string = report_str.getvalue();
     report_str.close()
 
-    print(report_string)
+    if not minimize_stdout:
+        print(report_string)
 
     if output_filename is not None:
         with open(output_filename, 'w') as outfile:
@@ -125,8 +126,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicecheckerdb.json", help="Filename of service check result database")
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicecheckerreport.md")
-    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-v', '--verbose', action='store_true', help="verbose details in report")
+    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
 
     args = parser.parse_args()
 
-    generate(args.input_filename,args.output_filename,args.verbose)
+    generate(args.input_filename,args.output_filename,args.verbose,args.stdout,args.minstdout)

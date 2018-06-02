@@ -1,4 +1,4 @@
-*.json
+*db.json
 *.yaml
 *.yml
 *report.md

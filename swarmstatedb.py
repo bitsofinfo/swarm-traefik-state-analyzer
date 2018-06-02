@@ -74,7 +74,7 @@ def getServiceData(client,swarm_name,service_id):
 #       that contains swarm footprint yaml files. i.e. 'prodswarm1.yml'
 # - output_filename: filename to write db to
 #
-def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename):
+def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename,minimize_stdout):
     # instantiate the client
     print()
     print("Reading swarm info files from: " + swarm_info_repo_root)
@@ -131,6 +131,7 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True)
     parser.add_argument('-s', '--swarm-name', dest='swarm_name', required=True)
     parser.add_argument('-f', '--service-filter', dest='service_filter', required=False, help="i.e. '{\"name\":\"my-app\"}' Valid filters: id, name , label and mode")
+    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
     args = parser.parse_args()
 
-    generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename)
+    generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename,args.minstdout)

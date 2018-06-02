@@ -32,6 +32,9 @@ def toHex(s):
 # for max max_retries
 max_retries = None
 
+# min stdout
+minimize_stdout = False
+
 sslcontext = ssl.create_default_context()
 sslcontext.check_hostname = False
 sslcontext.verify_mode = ssl.CERT_NONE
@@ -73,8 +76,17 @@ def calcRetryPercentage(total_attempts,total_fail,total_ok):
 
     return ((diff/total)*100)
 
+def calcFailPercentage(total_fail,total_ok):
+    if (total_ok == 0 and total_fail == 0):
+        return 0
+
+    total = (total_fail+total_ok)
+    return ((total_fail/total)*100)
 
 def execServiceCheck(service_record_and_health_check):
+
+    max_retries = service_record_and_health_check['max_retries']
+    minimize_stdout = service_record_and_health_check['minimize_stdout']
 
     hc = service_record_and_health_check['health_check']
     service_record = service_record_and_health_check['service_record']
@@ -125,8 +137,8 @@ def execServiceCheck(service_record_and_health_check):
             curl_body = body_text.replace("'","\\'")
             curl_data = "-d '"+curl_body+"' "
 
-
-        print("Checking: " + hc['method'] + " > "+ hc['url'] + " hh:" + host_header_val_4log)
+        if not minimize_stdout:
+            print("Checking: " + hc['method'] + " > "+ hc['url'] + " hh:" + host_header_val_4log)
 
         request = urllib.request.Request(hc['url'],headers=headers,method=hc['method'],data=body_bytes)
 
@@ -149,7 +161,7 @@ def execServiceCheck(service_record_and_health_check):
             attempts += 1
             hc['result'] = { "success":False }
 
-            if attempts > 1:
+            if attempts > 1 and not minimize_stdout:
                 print("   retryring: " + hc['url'])
 
             # log what it resolves to...
@@ -243,7 +255,7 @@ def execServiceCheck(service_record_and_health_check):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str,threads,tags):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str,threads,tags,min_stdout):
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
@@ -254,6 +266,9 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
 
     # seed max retries override
     max_retries = int(maximum_retries)
+
+    # seed minimize stdout
+    minimize_stdout = min_stdout
 
     # mthreaded...
     if (isinstance(threads,str)):
@@ -274,13 +289,14 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                                    'avg_resp_time_ms': 0,
                                    'total_req_time_ms': 0,
                                    'retry_percentage':0,
+                                   'fail_percentage':0,
                                    'total_attempts': 0,
                                    'total_skipped': 0,
-                                   'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
                                  },
                           'service_results': []
                           }
@@ -305,13 +321,14 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                                              'avg_resp_time_ms' :0,
                                              'total_req_time_ms': 0,
                                              'retry_percentage':0,
+                                             'fail_percentage':0,
                                              'total_attempts': 0,
                                              'total_skipped': 0,
-                                             'layer0': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer1': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer2': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer3': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer4': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0} },
+                                             'layer0': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
+                                             'layer1': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
+                                             'layer2': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
+                                             'layer3': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
+                                             'layer4': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0} },
                                 'service_record' : service_record}
 
         global_results_db['service_results'].append(service_results_db)
@@ -353,7 +370,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                         hc_executable = False
 
                 if hc_executable:
-                    executable_service_checks.append({'service_record':service_record,'health_check':hc})
+                    executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries,'minimize_stdout':minimize_stdout})
                 else:
                     hc['result'] = { "success":True,
                                       "ms":0,
@@ -466,8 +483,10 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                 service_metrics[layer]['avg_resp_time_ms'] = service_metrics[layer]['total_req_time_ms'] / len(executable_service_checks)
                 service_metrics[layer]['health_rating'] = calcHealthRating(layer_total_fail,layer_total_ok)
                 service_metrics[layer]['retry_percentage'] = calcRetryPercentage(layer_total_attempts,layer_total_fail,layer_total_ok)
+                service_metrics[layer]['fail_percentage'] = calcFailPercentage(layer_total_fail,layer_total_ok)
                 global_metrics[layer]['health_rating'] = calcHealthRating(global_layer_total_fail,global_layer_total_ok)
                 global_metrics[layer]['retry_percentage'] = calcRetryPercentage(global_metrics[layer]['total_attempts'],global_layer_total_fail,global_layer_total_ok)
+                global_metrics[layer]['fail_percentage'] = calcFailPercentage(global_layer_total_fail,global_layer_total_ok)
 
         # end loop over all layers
         service_total_processed = (service_metrics['total_fail']+service_metrics['total_ok'])
@@ -475,6 +494,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
             service_metrics['avg_resp_time_ms'] = service_metrics['total_req_time_ms'] / service_total_processed
         service_metrics['health_rating'] = calcHealthRating(service_metrics['total_fail'],service_metrics['total_ok'])
         service_metrics['retry_percentage'] = calcRetryPercentage(service_metrics['total_attempts'],service_metrics['total_fail'],service_metrics['total_ok'])
+        service_metrics['fail_percentage'] = calcFailPercentage(service_metrics['total_fail'],service_metrics['total_ok'])
 
 
         # overall global metrics
@@ -488,6 +508,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
 
         global_metrics['health_rating'] = calcHealthRating(global_total_fail,global_total_ok)
         global_metrics['retry_percentage'] = calcRetryPercentage(global_metrics['total_attempts'],global_total_fail,global_total_ok)
+        global_metrics['fail_percentage'] = calcFailPercentage(global_total_fail,global_total_ok)
 
 
     # to json
@@ -522,9 +543,11 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+')
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
+    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
 
     args = parser.parse_args()
 
     max_retries = int(args.max_retries)
+    minimize_stdout = args.minstdout
 
-    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_name,args.layers,args.threads,args.tags)
+    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_name,args.layers,args.threads,args.tags,args.minstdout)

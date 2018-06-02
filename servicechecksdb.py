@@ -309,7 +309,7 @@ def getSwarmInfoMap(swarm_info_repo_root,swarm_name):
 
 
 # Does the bulk of the work
-def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str,tags):
+def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str,tags,minimize_stdout):
 
     if tags is None:
         tags = []
@@ -365,6 +365,15 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         docker_service_data['formal_name'] = service_state['formal_name']
         docker_service_data['app_type'] = service_state['app_type']
         docker_service_data['aliases'] = service_state['aliases']
+
+        # Analyze the classifiers and decorate
+        # the docker_service_data w/ this additional information
+        docker_service_data['classifier'] = None
+        if 'classifiers' in service_state:
+            for classifier_name in service_state['classifiers']:
+                if classifier_name in docker_service_name:
+                    docker_service_data['classifier'] = classifier_name
+                    break
 
         # Analyze the contexts/versions and decorate
         # the docker_service_data w/ this additional information
@@ -503,6 +512,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicechecksdb.json")
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+', default=["health"])
+    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
     args = parser.parse_args()
 
-    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags)
+    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags,args.minstdout)
