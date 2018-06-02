@@ -126,9 +126,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Start up the server to expose the metrics.
-    start_http_server(args.metrics_port)
+    start_http_server(int(args.metrics_port))
 
-    print("Exposing metrics at: http://localhost:" + args.metrics_port + "/metrics")
+    print("Exposing metrics at: http://localhost:" + str(args.metrics_port) + "/metrics")
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s - %(message)s',
                         datefmt='%Y-%m-%d %H:%M:%S')
