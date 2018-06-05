@@ -30,7 +30,7 @@ formal_name_2_service_state = {}
 aliases_2_formal_name = {}
 
 
-# De-deuplicates a list of objects, where the value for given key is the same
+# De-deuplicates a list of objects, where the value is the same
 def dedup(list_of_objects):
     to_return = []
     seen = set()
@@ -74,14 +74,14 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
     to_return = []
 
     if 'service_ports' not in service_state:
-        msg = "MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml has no 'service_ports' declared"
+        msg = "WARNING MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml has no 'service_ports' declared"
         docker_service_data['warnings'].add(msg)
         print(msg)
         return []
 
     # get the service_port info for the desired service_port
     if not service_port in service_state["service_ports"]:
-        msg = "MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml declared port: " + str(service_port) + " IS NOT PUBLISHED according to swarm!"
+        msg = "WARNING MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml declared port: " + str(service_port) + " IS NOT PUBLISHED according to swarm!"
         docker_service_data['warnings'].add(msg)
         print(msg)
         return []
@@ -397,6 +397,10 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                                 docker_service_data['context']['tags'].append(version_tag)
                                 docker_service_data['context']['version'] = version_number
 
+
+        # log a warning
+        if docker_service_data['context']['name'] is None or docker_service_data['context']['version'] is None:
+            docker_service_data['warnings'].add("WARNING: this docker service's name was not matched with any 'context' and/or 'version' in the service-state.yml file!")
 
         # Determine the traefik port based on internal/external
         traefik_port = swarm_info['traefik_swarm_port_internal_https']

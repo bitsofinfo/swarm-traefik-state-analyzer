@@ -18,6 +18,17 @@ from multiprocessing import Pool, Process
 from jinja2 import Template
 from urllib.parse import urlparse
 
+# De-deuplicates a list of objects, where the value is the same
+def dedup(list_of_objects):
+    to_return = []
+    seen = set()
+    for obj in list_of_objects:
+        asjson = json.dumps(obj, sort_keys=True)
+        if asjson not in seen:
+            to_return.append(obj)
+            seen.add(asjson)
+    return to_return;
+
 #convert string to hex
 def toHex(s):
     lst = []
@@ -150,24 +161,28 @@ def execServiceCheck(service_record_and_health_check):
                          "ms":0,
                          "attempts":0,
                          "error": str(sys.exc_info()[:2])}
-
+        return service_record_and_health_check
 
     # ok now do the attempts based on configured retries
-    attempts = 0
+    attempt_count = 0
+    attempts_failed = []
+    distinct_failure_codes = []
+    distinct_failure_errors = []
     dns_lookup_result = None
-    while (attempts < retries):
+    while (attempt_count < retries):
 
         try:
-            attempts += 1
+            attempt_count += 1
             hc['result'] = { "success":False }
 
-            if attempts > 1 and not minimize_stdout:
+            if attempt_count > 1 and not minimize_stdout:
                 print("   retryring: " + hc['url'])
 
             # log what it resolves to...
             dns_lookup_result = None
             try:
-                lookup = urlparse(hc['url']).netloc.split(":")[0]
+                parsed = urlparse(hc['url'])
+                lookup = parsed.netloc.split(":")[0]
                 dns_lookup_result = socket.gethostbyname(lookup)
             except Exception as e:
                 dns_lookup_result = str(sys.exc_info()[:2])
@@ -216,46 +231,89 @@ def execServiceCheck(service_record_and_health_check):
 
             # status code invalid
             else:
-                response_unhealthy_reason = "response status code:" + response.getcode() + ", is not in:" + str(success_status_codes)
+                response_unhealthy_reason = "response status code:" + response.getcode() + ", is not in 'success_status_codes'"
 
             # formulate our result object
             if (response_is_healthy):
                 hc['result'] = { "success":True,
                                  "code":response.getcode(),
                                  "ms":ms,
-                                 "attempts":attempts,
+                                 "attempts":attempt_count,
                                  "response": response_data,
                                  "headers": response.getheaders(),
-                                 "dns":dns_lookup_result}
+                                 "dns":dns_lookup_result,
+                                 "attempts_failed":attempts_failed}
                 break
+
+            # failed...
             else:
+                # create base result object
                 hc['result'] = { "success":False,
-                                 "code":response.getcode(),
-                                 "error":response_unhealthy_reason,
-                                 "ms":ms,
-                                 "attempts":attempts,
-                                 "response": response_data,
-                                 "headers": response.getheaders(),
-                                 "dns":dns_lookup_result}
+                                 "attempts": attempt_count,}
+
+                # attributes specific to the attempt
+                attempt_entry = { "ms":ms,
+                                  "response": response_data,
+                                  "headers": response.getheaders(),
+                                  "dns":dns_lookup_result,
+                                  "error":response_unhealthy_reason,
+                                  "code":response.getcode()}
+
+                # record in attempts_failed
+                attempts_failed.append(attempt_entry)
+                distinct_failure_codes.append(response.getcode())
+                distinct_failure_codes = dedup(distinct_failure_codes)
+                distinct_failure_errors.append(response_unhealthy_reason)
+                distinct_failure_errors = dedup(distinct_failure_errors)
+
+                # merge the attempt_entry props into result object
+                # as we always store the most recent one at the top level
+                hc['result'].update(attempt_entry)
+
+                # add the current list of attempt errors to result object
+                hc['result']['attempts_failed'] = attempts_failed
+                hc['result']['distinct_failure_codes'] = distinct_failure_codes
+                hc['result']['distinct_failure_errors'] = distinct_failure_errors
 
         except Exception as e:
             ms = (datetime.datetime.now() - start).total_seconds() * 1000
             hc['result'] = { "success":False,
-                             "ms":ms,
-                             "attempts":attempts,
-                             "error": str(sys.exc_info()[:2]),
-                             "dns": dns_lookup_result }
+                             "attempts":attempt_count }
+
+            # attributes specific to the attempt
+            attempt_entry = { "ms":ms,
+                              "dns":dns_lookup_result,
+                              "error":str(sys.exc_info()[:2])}
+
+            distinct_failure_errors.append(attempt_entry['error'])
+            distinct_failure_errors = dedup(distinct_failure_errors)
+
+            # if an HTTPError lets decorate the entry w/ that
             if type(e) is urllib.error.HTTPError:
-                hc['result']['code'] = e.code
-                hc['result']['response'] = readHTTPResponse(e)
-                hc['result']['headers'] = e.getheaders()
+                attempt_entry['code'] = e.code
+                attempt_entry['response'] = readHTTPResponse(e)
+                attempt_entry['headers'] = e.getheaders()
+                distinct_failure_codes.append(e.code)
+                distinct_failure_codes = dedup(distinct_failure_codes)
+
+            # record in attempts_failed
+            attempts_failed.append(attempt_entry)
+
+            # merge the attempt_entry props into result object
+            # as we always store the most recent one at the top level
+            hc['result'].update(attempt_entry)
+
+            # add the current list of attempt errors to result object
+            hc['result']['attempts_failed'] = attempts_failed
+            hc['result']['distinct_failure_codes'] = distinct_failure_codes
+            hc['result']['distinct_failure_errors'] = distinct_failure_errors
 
 
     return service_record_and_health_check
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_name,layers_to_process_str,threads,tags,min_stdout):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,min_stdout):
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
@@ -280,7 +338,8 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
     print("Reading layer check db from: " + input_filename)
 
     # where we will store our results
-    global_results_db = {'name':job_name,
+    global_results_db = {'id':job_id,
+                         'name':job_name,
                          'tags':tags,
                          'metrics': {'health_rating':0,
                                    'total_fail':0,
@@ -292,11 +351,12 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                                    'fail_percentage':0,
                                    'total_attempts': 0,
                                    'total_skipped': 0,
-                                   'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
-                                   'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}},
+                                   'failed_attempt_stats' : {},
+                                   'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                   'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                   'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                   'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                   'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
                                  },
                           'service_results': []
                           }
@@ -324,11 +384,12 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                                              'fail_percentage':0,
                                              'total_attempts': 0,
                                              'total_skipped': 0,
-                                             'layer0': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer1': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer2': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer3': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0},
-                                             'layer4': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0} },
+                                             'failed_attempt_stats' : {},
+                                             'layer0': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                             'layer1': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                             'layer2': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                             'layer3': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                             'layer4': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}} },
                                 'service_record' : service_record}
 
         global_results_db['service_results'].append(service_results_db)
@@ -353,6 +414,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                     skip_layer = False
                     break
 
+            # if skipping
             if skip_layer:
                 continue
 
@@ -420,6 +482,30 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_nam
                 # service metrics for this layer
                 service_metrics[layer]['total_attempts'] += total_attempts
                 service_metrics[layer]['total_req_time_ms'] += total_ms
+
+                # bump stats for all attempt information
+                # this is relevant regardless of success/fail
+                if 'attempts_failed' in check_result:
+                    for attempt_error in check_result['attempts_failed']:
+                        failure_reason = ""
+                        if 'code' in attempt_error:
+                            failure_reason = str(attempt_error['code'])
+                        if 'error' in attempt_error:
+                            failure_reason += " - " + attempt_error['error']
+
+                        if len(failure_reason) > 0:
+                            metrics_2_update = [service_metrics,service_metrics[layer],global_metrics,global_metrics[layer]]
+                            for metric_2_update in metrics_2_update:
+                                failed_attempt_stats = metric_2_update['failed_attempt_stats']
+                                healthcheck_url = service_check_record['url']
+
+                                if healthcheck_url not in failed_attempt_stats:
+                                    failed_attempt_stats[healthcheck_url] = {}
+
+                                url_stats = failed_attempt_stats[healthcheck_url]
+                                if failure_reason not in url_stats:
+                                    url_stats[failure_reason] = 0
+                                url_stats[failure_reason] += 1
 
                 # handle failure...
                 if not check_result['success']:
@@ -540,6 +626,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--output-format', dest='output_format', default="json", help="json or yaml")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
     parser.add_argument('-n', '--job-name', dest='job_name', default="no --job-name specified", help="descriptive name for this execution job")
+    parser.add_argument('-i', '--job-id', dest='job_id', help="unique id for this execution job")
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+')
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
@@ -550,4 +637,4 @@ if __name__ == '__main__':
     max_retries = int(args.max_retries)
     minimize_stdout = args.minstdout
 
-    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_name,args.layers,args.threads,args.tags,args.minstdout)
+    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags,args.minstdout)

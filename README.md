@@ -77,7 +77,7 @@ This project provides multiple modules who's input/output can be used between ea
 
 This script will interrogate a target swarm for services matching `--service-filter` and dump a summarized subset of the relevant information in a JSON file which can then be consumed by `servicechecksdb.py`...or whatever else you want to do with it. The information it extracts contains published port information, traefik labels, image info, number of replicas amongst other things.
 
-```
+```bash
 ./swarmstatedb.py --output-filename [filename] \
   --swarm-info-repo-root /pathto/[dir containing swarm-name.yml files] \
   --swarm-name [swarm-name] \
@@ -92,7 +92,7 @@ Options:
 * `--minstdout`: minimize the amount of STDOUT output
 
 Produces output:
-```
+```json
 [
     {
         "swarm_name": "myswarm1",
@@ -121,7 +121,7 @@ Depending on the number of ports your application exposes, number of swarm nodes
 
 You can use the generated JSON file that contains all the necessary information (urls, headers, methods, payloads etc) to drive any monitoring system you'd like.... or just feed into the provided `servicechecker.py` to execute all the service checks and write a detailed report out... again in JSON.
 
-```
+```bash
 ./servicechecksdb.py --input-filename [swarmstatedb output file] \
   --swarm-info-repo-root /pathto/[dir containing swarm-name.yml files] \
   --service-state-repo-root /pathto/[dir containing service-state.yml files]
@@ -140,7 +140,7 @@ Options:
 * `--minstdout`: minimize the amount of STDOUT output
 
 Decorates additional info to `swarmstatedb` output from `service-state.yml` files:
-```
+```json
   ...
   "warnings": [],
   "context": {
@@ -278,7 +278,7 @@ This file can be used to parse and feed into an alerting system or use however y
 
 As a start a simple `servicecheckerreport.py` script is in this project which will give a summary report from the `servicechecksdb.py` output JSON file.
 
-```
+```bash
 ./servicechecker.py --input-filename [servicechecksdb output file] \
   --job-name [optional name for this execution job] \
   --output-format [json or yaml: default json]
@@ -300,8 +300,8 @@ Options:
 * `--output-filename`: path where the JSON results will be written
 * `--minstdout`: minimize the amount of STDOUT output
 
-Produces (a ton of) output: (truncated for brevity)
-```
+Produces (a ton of) output related to every health check executed, including attempts information as well as a convienent `curl` command you can use to try it again yourself: (truncated for brevity)
+```json
   {
       "name": "20180520_003903-myswarm1-test",
       "metrics": {
@@ -327,6 +327,52 @@ Produces (a ton of) output: (truncated for brevity)
               "health_rating": 99.10714285714286,
               "total_ok": 222,
           ...
+          {
+              "layer": 3,
+              "url": "https://my-app1.test.com/health",
+              "target_container_port": null,
+              "host_header": null,
+              "headers": [
+                  "x-test1: 15"
+              ],
+              "method": "GET",
+              "timeout": 5,
+              "retries": 18,
+              "description": "my-app1-pre-prod-12-beta2_app via normal fqdn access",
+              "tags": [
+                  "deployment",
+                  "health"
+              ],
+              "result": {
+                  "success": false,
+                  "attempts": 3,
+                  "ms": 5008.051,
+                  "dns": "192.168.9.223",
+                  "error": "(<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))",
+                  "attempts_failed": [
+                      {
+                          "ms": 5009.217,
+                          "dns": "192.168.9.223",
+                          "error": "(<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))"
+                      },
+                      {
+                          "ms": 5009.276,
+                          "dns": "192.168.9.223",
+                          "error": "(<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))"
+                      },
+                      {
+                          "ms": 5008.051,
+                          "dns": "192.168.9.223",
+                          "error": "(<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))"
+                      }
+                  ]
+              },
+              "distinct_failure_codes": [],
+              "distinct_failure_errors": [
+                  "(<class 'urllib.error.URLError'>, URLError(timeout('timed out',),))"
+              ],
+              "curl": "curl -v --retry 3 -k -m 5 -X GET --header 'x-test1: 15' https://my-app1.test.com/health"
+          }
   ...
 ```
 
@@ -463,44 +509,51 @@ Metrics exposed:
 # HELP python_info Python platform information
 # TYPE python_info gauge
 python_info{implementation="CPython",major="3",minor="6",patchlevel="4",version="3.6.4"} 1.0
-# HELP sts_analyzer_analyzer_c_ok_total Cumulative total OK
-# TYPE sts_analyzer_analyzer_c_ok_total counter
-sts_analyzer_analyzer_c_ok_total{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 28.0
+# HELP sts_analyzer_c_ok_total Cumulative total OK
+# TYPE sts_analyzer_c_ok_total counter
+sts_analyzer_c_ok_total{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 28.0
 ...
-# HELP sts_analyzer_analyzer_c_fail_total Cumulative total FAILED
-# TYPE sts_analyzer_analyzer_c_fail_total counter
-sts_analyzer_analyzer_c_fail_total{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 0.0
+# HELP sts_analyzer_c_fail_total Cumulative total FAILED
+# TYPE sts_analyzer_c_fail_total counter
+sts_analyzer_c_fail_total{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 0.0
 ...
-# HELP sts_analyzer_analyzer_c_attempts_total Cumulative total attempts
-# TYPE sts_analyzer_analyzer_c_attempts_total counter
-sts_analyzer_analyzer_c_attempts_total{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 33.0
+# HELP sts_analyzer_c_attempts_total Cumulative total attempts
+# TYPE sts_analyzer_c_attempts_total counter
+sts_analyzer_c_attempts_total{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 33.0
 ...
-# HELP sts_analyzer_analyzer_g_health_rating Most recent % OK checks for
-# TYPE sts_analyzer_analyzer_g_health_rating gauge
-sts_analyzer_analyzer_g_health_rating{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 100.0
+# HELP sts_analyzer_g_health_rating Most recent % OK checks for
+# TYPE sts_analyzer_g_health_rating gauge
+sts_analyzer_g_health_rating{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 100.0
 ...
-# HELP sts_analyzer_analyzer_g_retry_percentage Most recent % of checks that had to be retried
-# TYPE sts_analyzer_analyzer_g_retry_percentage gauge
-sts_analyzer_analyzer_g_retry_percentage{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 17.857142857142858
+# HELP sts_analyzer_g_retry_percentage Most recent % of checks that had to be retried
+# TYPE sts_analyzer_g_retry_percentage gauge
+sts_analyzer_g_retry_percentage{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 17.857142857142858
 ...
-# TYPE sts_analyzer_analyzer_g_fail_percentage gauge
-sts_analyzer_analyzer_g_fail_percentage{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 0.0
+# TYPE sts_analyzer_g_fail_percentage gauge
+sts_analyzer_g_fail_percentage{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 0.0
 ...
-# HELP sts_analyzer_analyzer_g_ok Most recent total OK checks
-# TYPE sts_analyzer_analyzer_g_ok gauge
-sts_analyzer_analyzer_g_ok{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 28.0
+# HELP sts_analyzer_g_ok Most recent total OK checks
+# TYPE sts_analyzer_g_ok gauge
+sts_analyzer_g_ok{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 28.0
 ...
-# HELP sts_analyzer_analyzer_g_failures Most recent total FAILED checks
-# TYPE sts_analyzer_analyzer_g_failures gauge
-sts_analyzer_analyzer_g_failures{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 0.0
+# HELP sts_analyzer_g_failures Most recent total FAILED checks
+# TYPE sts_analyzer_g_failures gauge
+sts_analyzer_g_failures{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 0.0
 ...
-# HELP sts_analyzer_analyzer_g_attempts Most recent total ATTEMPTS checks
-# TYPE sts_analyzer_analyzer_g_attempts gauge
-sts_analyzer_analyzer_g_attempts{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 33.0
+# HELP sts_analyzer_g_attempts Most recent total ATTEMPTS checks
+# TYPE sts_analyzer_g_attempts gauge
+sts_analyzer_g_attempts{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 33.0
 ...
-# HELP sts_analyzer_analyzer_g_avg_resp_time_seconds Average response time for checks in seconds
-# TYPE sts_analyzer_analyzer_g_avg_resp_time_seconds gauge
-sts_analyzer_analyzer_g_avg_resp_time_seconds{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 4.298571428571428
+# HELP sts_analyzer_g_avg_resp_time_seconds Average response time for checks in seconds
+# TYPE sts_analyzer_g_avg_resp_time_seconds gauge
+sts_analyzer_g_avg_resp_time_seconds{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer0",swarm="myswarm1",tags="current",version="12beta2"} 4.298571428571428
+...
+# HELP sts_analyzer_g_attempt_errors Most recent total errors
+# TYPE sts_analyzer_g_attempt_errors gauge
+sts_analyzer_g_attempt_errors{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",error="timeout",formal_name="my_app",layer="layer3",swarm="myswarm1",tags="current",version="12beta2",path="/health"} 6.0
+# HELP sts_analyzer_g_replicas Most recent total replicas
+# TYPE sts_analyzer_g_replicas gauge
+sts_analyzer_g_replicas{classifier="none",context="pre-prod",docker_service_name="my_app_pre-prod_12beta2_app",formal_name="my_app",layer="layer3",swarm="myswarm1",tags="current",version="12beta2"} 6.0
 ...
 ```
 
@@ -520,7 +573,7 @@ This dashboard presents analytics organized by **layer**. At the top of the dash
 
 Swarm info files, are a generic YAML declaration that describes a named swarm footprint in the described architecture above.
 
-```
+```yaml
 SWARM_MGR_URI: "http://myswarm1.test.com:[port]"
 
 swarm_lb_endpoint_internal: "myswarm1-intlb.test.com"
@@ -544,7 +597,7 @@ swarm_host_info:
 Service state files, are a generic YAML declaration that describes a named "service" that can be deployed within the described architecture above on one or more target swarms
 
 
-```
+```yaml
 formal_name: "my-servicename"
 app_type: "go"
 

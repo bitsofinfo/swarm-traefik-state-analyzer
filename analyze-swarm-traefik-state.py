@@ -37,12 +37,13 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    job_name = timestamp+"-"+args.swarm_name+"-"+args.job_name
-    output_dir = args.output_dir+"/"+job_name+"/"
+    job_name = args.swarm_name+"-"+args.job_name
+    job_id = timestamp+"-"+job_name
+    output_dir = args.output_dir+"/"+job_id+"/"
     if not os.path.exists(os.path.dirname(output_dir)):
         os.makedirs(os.path.dirname(output_dir))
 
-    path_prefix = output_dir+job_name + "_"
+    path_prefix = output_dir+job_id + "_"
 
     # generate service state db
     print("\nInvoking swarmstatedb.generate().....")
@@ -58,7 +59,7 @@ if __name__ == '__main__':
     print("\nInvoking servicechecker.execute().....")
     servicecheckerdb_file = path_prefix+"03_servicecheckerdb.json"
     servicechecker.max_retries = args.max_retries
-    servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_name,args.layers,args.threads,args.tags,args.minstdout)
+    servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_id,job_name,args.layers,args.threads,args.tags,args.minstdout)
 
     # make the report
     print("\nInvoking servicecheckerreport.execute().....")
