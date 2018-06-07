@@ -94,6 +94,104 @@ def calcFailPercentage(total_fail,total_ok):
     total = (total_fail+total_ok)
     return ((total_fail/total)*100)
 
+def processResponse(service_check_def,
+                    service_record,
+                    ms,
+                    response,
+                    attempts_failed,
+                    distinct_failure_codes,
+                    distinct_failure_errors,
+                    attempt_count,
+                    dns_lookup_result):
+
+    # hc/service_check (health check for short)
+    hc = service_check_def
+
+    # attempt to parse the response
+    response_data = readHTTPResponse(response)
+
+    # what is "success"?!
+    success_status_codes = [200]
+    success_body_evaluator = None
+    if 'is_healthy' in hc:
+        success_status_codes = hc['is_healthy']['response_codes']
+        if 'body_evaluator' in hc['is_healthy']:
+            success_body_evaluator = hc['is_healthy']['body_evaluator']
+
+
+    # lets actually check if the response is legit...
+    response_is_healthy = False
+    response_unhealthy_reason = None
+    if response.getcode() in success_status_codes:
+
+        # handle evaluator..
+        if success_body_evaluator is not None:
+
+            if success_body_evaluator['type'] == "contains":
+                if success_body_evaluator["value"] in response_data['as_string']:
+                    response_is_healthy = True
+                else:
+                    response_unhealthy_reason = "body_evaluator[contains] failed, did not find: '"+success_body_evaluator["value"]+"' in resp. body"
+
+            elif success_body_evaluator['type'] == "jinja2":
+                t = Template(success_body_evaluator["template"])
+                x = t.render(response_data=response_data,response_code=response.getcode(),service_record=service_record)
+                if '1' in x:
+                    response_is_healthy = True
+                else:
+                    response_unhealthy_reason = "body_evaluator[jinja2] failed, template returned 0 (expected 1)"
+
+        else:
+            response_is_healthy = True
+
+    # status code invalid
+    else:
+        response_unhealthy_reason = "response status code:" + str(response.getcode()) + ", is not in 'success_status_codes'"
+
+    # formulate our result object
+    if (response_is_healthy):
+        hc['result'] = { "success":True,
+                         "code":response.getcode(),
+                         "ms":ms,
+                         "attempts":attempt_count,
+                         "response": response_data,
+                         "headers": response.getheaders(),
+                         "dns":dns_lookup_result,
+                         "attempts_failed":attempts_failed}
+        return
+
+    # failed...
+    else:
+        # create base result object
+        hc['result'] = { "success":False,
+                         "attempts": attempt_count}
+
+        # attributes specific to the attempt
+        attempt_entry = { "ms":ms,
+                          "response": response_data,
+                          "headers": response.getheaders(),
+                          "dns":dns_lookup_result,
+                          "error":response_unhealthy_reason,
+                          "code":response.getcode()}
+
+        # record in attempts_failed
+        attempts_failed.append(attempt_entry)
+        distinct_failure_codes.append(response.getcode())
+        distinct_failure_codes = dedup(distinct_failure_codes)
+        distinct_failure_errors.append(response_unhealthy_reason)
+        distinct_failure_errors = dedup(distinct_failure_errors)
+
+        # merge the attempt_entry props into result object
+        # as we always store the most recent one at the top level
+        hc['result'].update(attempt_entry)
+
+        # add the current list of attempt errors to result object
+        hc['result']['attempts_failed'] = attempts_failed
+        hc['result']['distinct_failure_codes'] = distinct_failure_codes
+        hc['result']['distinct_failure_errors'] = distinct_failure_errors
+
+
+
 def execServiceCheck(service_record_and_health_check):
 
     max_retries = service_record_and_health_check['max_retries']
@@ -188,95 +286,31 @@ def execServiceCheck(service_record_and_health_check):
                 dns_lookup_result = str(sys.exc_info()[:2])
 
             # do the request
-            start = datetime.datetime.now()
-            response = urllib.request.urlopen(request,timeout=hc['timeout'],context=sslcontext)
+            try:
+                start = datetime.datetime.now()
+                response = urllib.request.urlopen(request,timeout=hc['timeout'],context=sslcontext)
+
+            except urllib.error.HTTPError as httperror:
+                response = httperror
+
             ms = round((datetime.datetime.now() - start).total_seconds() * 1000,0)
 
-            # attempt to parse the response
-            response_data = readHTTPResponse(response)
+            # process the response
+            processResponse(hc,service_record,ms,response,
+                            attempts_failed,
+                            distinct_failure_codes,
+                            distinct_failure_errors,
+                            attempt_count,
+                            dns_lookup_result)
 
-            # what is "success"?!
-            success_status_codes = [200]
-            success_body_evaluator = None
-            if 'is_healthy' in hc:
-                success_status_codes = hc['is_healthy']['response_codes']
-                if 'body_evaluator' in hc['is_healthy']:
-                    success_body_evaluator = hc['is_healthy']['body_evaluator']
-
-
-            # lets actually check if the response is legit...
-            response_is_healthy = False
-            response_unhealthy_reason = None
-            if response.getcode() in success_status_codes:
-
-                # handle evaluator..
-                if success_body_evaluator is not None:
-
-                    if success_body_evaluator['type'] == "contains":
-                        if success_body_evaluator["value"] in response_data['as_string']:
-                            response_is_healthy = True
-                        else:
-                            response_unhealthy_reason = "body_evaluator[contains] failed, did not find: '"+success_body_evaluator["value"]+"' in resp. body"
-
-                    elif success_body_evaluator['type'] == "jinja2":
-                        t = Template(success_body_evaluator["template"])
-                        x = t.render(response_data=response_data,response_code=response.getcode(),service_record=service_record)
-                        if '1' in x:
-                            response_is_healthy = True
-                        else:
-                            response_unhealthy_reason = "body_evaluator[jinja2] failed, template returned 0 (expected 1)"
-
-                else:
-                    response_is_healthy = True
-
-            # status code invalid
-            else:
-                response_unhealthy_reason = "response status code:" + response.getcode() + ", is not in 'success_status_codes'"
-
-            # formulate our result object
-            if (response_is_healthy):
-                hc['result'] = { "success":True,
-                                 "code":response.getcode(),
-                                 "ms":ms,
-                                 "attempts":attempt_count,
-                                 "response": response_data,
-                                 "headers": response.getheaders(),
-                                 "dns":dns_lookup_result,
-                                 "attempts_failed":attempts_failed}
+            # if it was successful, exit loop
+            if hc['result']['success']:
                 break
 
-            # failed...
-            else:
-                # create base result object
-                hc['result'] = { "success":False,
-                                 "attempts": attempt_count,}
-
-                # attributes specific to the attempt
-                attempt_entry = { "ms":ms,
-                                  "response": response_data,
-                                  "headers": response.getheaders(),
-                                  "dns":dns_lookup_result,
-                                  "error":response_unhealthy_reason,
-                                  "code":response.getcode()}
-
-                # record in attempts_failed
-                attempts_failed.append(attempt_entry)
-                distinct_failure_codes.append(response.getcode())
-                distinct_failure_codes = dedup(distinct_failure_codes)
-                distinct_failure_errors.append(response_unhealthy_reason)
-                distinct_failure_errors = dedup(distinct_failure_errors)
-
-                # merge the attempt_entry props into result object
-                # as we always store the most recent one at the top level
-                hc['result'].update(attempt_entry)
-
-                # add the current list of attempt errors to result object
-                hc['result']['attempts_failed'] = attempts_failed
-                hc['result']['distinct_failure_codes'] = distinct_failure_codes
-                hc['result']['distinct_failure_errors'] = distinct_failure_errors
 
         except Exception as e:
             ms = (datetime.datetime.now() - start).total_seconds() * 1000
+
             hc['result'] = { "success":False,
                              "attempts":attempt_count }
 
@@ -287,14 +321,6 @@ def execServiceCheck(service_record_and_health_check):
 
             distinct_failure_errors.append(attempt_entry['error'])
             distinct_failure_errors = dedup(distinct_failure_errors)
-
-            # if an HTTPError lets decorate the entry w/ that
-            if type(e) is urllib.error.HTTPError:
-                attempt_entry['code'] = e.code
-                attempt_entry['response'] = readHTTPResponse(e)
-                attempt_entry['headers'] = e.getheaders()
-                distinct_failure_codes.append(e.code)
-                distinct_failure_codes = dedup(distinct_failure_codes)
 
             # record in attempts_failed
             attempts_failed.append(attempt_entry)
@@ -622,12 +648,12 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--output-format', dest='output_format', default="json", help="json or yaml")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
     parser.add_argument('-n', '--job-name', dest='job_name', default="no --job-name specified", help="descriptive name for this execution job")
-    parser.add_argument('-i', '--job-id', dest='job_id', help="unique id for this execution job")
+    parser.add_argument('-j', '--job-id', dest='job_id', help="unique id for this execution job")
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+')
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
-    parser.add_argument('-f', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+    parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
 
     args = parser.parse_args()
 

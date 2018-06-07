@@ -337,8 +337,9 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         with open(yml_file, 'r') as f:
             service_state_yml = yaml.load(f)
             formal_name_2_service_state[service_state_yml['formal_name']] = service_state_yml
-            for alias in service_state_yml['aliases']:
-                aliases_2_formal_name[alias] = service_state_yml
+            if 'aliases' in service_state_yml and service_state_yml['aliases'] is not None:
+                for alias in service_state_yml['aliases']:
+                    aliases_2_formal_name[alias] = service_state_yml
 
 
 
@@ -486,6 +487,9 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         # vs. being calculated like the other layers above
         if 4 in layers_to_process:
             for hc in getServiceChecksForServiceAnyPort(4,docker_service_name,service_state,tags,docker_service_data):
+                if 'contexts' not in hc:
+                    docker_service_data['warnings'].add("WARNING: 'service_checks' definition says this check is for layer 4 but missing required 'contexts' key... skipping layer4 service check generation..")
+                    continue
                 contexts = hc['contexts']
                 for context_name in contexts:
                     if context_name in docker_service_name:
