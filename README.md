@@ -750,7 +750,7 @@ docker run \
     --output-dir /output \
     --swarm-info-repo-root /swarm-info \
     --service-state-repo-root /service-state \
-    --swarm-name prodswarm1 \
+    --swarm-name myswarm1 \
     --service-filter '{"name":"myapp-prod"}' \
     --layers  3  \
     --threads 30 \
