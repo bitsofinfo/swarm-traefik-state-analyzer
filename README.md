@@ -732,6 +732,29 @@ contexts:
       next: "12-beta1"
 ```
 
-## <a id="servicestate"></a>service-state.yml files
+## <a id="docker"></a>Docker
 
-Service state files, are a generic YAML declaration that describes a named "service" that can be deployed within the described architecture above on one or more target swarms
+You can also run the any of the modules in this project via Docker.
+
+Example:
+```
+docker build -t swarm-traefik-state-analyzer .
+
+docker run \
+  -v path/to/service-state-files-dir/:/service-state \
+  -v path/to/service-info-files-dir/:/swarm-info \
+  -v /tmp/output/:/output \
+  swarm-traefik-state-analyzer \
+  analyze-swarm-traefik-state.py \
+    --job-name myapp-prod \
+    --output-dir /output \
+    --swarm-info-repo-root /swarm-info \
+    --service-state-repo-root /service-state \
+    --swarm-name prodswarm1 \
+    --service-filter '{"name":"myapp-prod"}' \
+    --layers  3  \
+    --threads 30 \
+    --log-file /output/analyze-swarm-traefik-state.log \
+    --tags health version \
+    --stdout-servicechecker-result
+```
