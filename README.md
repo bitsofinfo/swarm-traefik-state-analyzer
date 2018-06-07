@@ -500,6 +500,8 @@ All of the data generated from `analyze-swarm-traefik-state.py` is stored by def
 Options:
 * `--stdout-servicecheckerreport-result`: print servicecheckerreport.md output to STDOUT in addition to file
 * `--stdout-servicechecker-result`: print servicechecker raw results to STDOUT in addition to disk
+* `--log-file`: path to log file, otherwise STDOUT
+* `--log-level`: python log level (DEBUG, WARN ... etc)
 
 The meaning for the options above are the same as and described in the separate sections above for each separate module
 
