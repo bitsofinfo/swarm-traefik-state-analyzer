@@ -61,6 +61,10 @@ This suite of modules is built around the following simple architecture
     * `next`: The upcoming version of the application which receives traffic bound to special testing FQDNs (i.e. my-app-nv.test.com)
 *  "Where" HTTP/S traffic goes for given standard FQDNs can easily be controlled by hot-swapping Traefik frontend rules via Docker service labels
 
+### Deploying services
+
+The "how" of how you deploy and manage your services based on this swarm/traefik footprint architecture and docker service naming conventions based around the [swarminfo.yml files](#swarminfo) and [service-state.yml files](#servicestate) is up to you. You can build automation around this using any programming language of your choice or DevOps toolsets like Ansible.
+
 ## <a id="modules"></a>Modules/Scripts
 
 This project provides multiple modules who's input/output can be used between each other or each can just be used independently on their own.
