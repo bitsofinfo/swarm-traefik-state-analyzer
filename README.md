@@ -30,6 +30,7 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
   * [analyze-swarm-traefik-state.py](#analyze-swarm-traefik-state)
   * [servicecheckerdb2prometheus.py](#servicecheckerdb2prometheus)
 * [Grafana dashboards](#grafana)
+* [Docker](#docker)
 
 ## <a id="architecture"></a>Architecture overview
 
@@ -730,3 +731,7 @@ contexts:
       previous: "9"
       next: "12-beta1"
 ```
+
+## <a id="servicestate"></a>service-state.yml files
+
+Service state files, are a generic YAML declaration that describes a named "service" that can be deployed within the described architecture above on one or more target swarms

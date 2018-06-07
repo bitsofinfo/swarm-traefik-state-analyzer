@@ -37,7 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-e', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-p', '--stdout-servicecheckerreport-result', action='store_true', help="print servicecheckerreport.md output to STDOUT in addition to file")
-    parser.add_argument('-z', '--stdout-servicechecker-result', action='store_true', default="print servicechecker raw results to STDOUT in addition to disk")
+    parser.add_argument('-z', '--stdout-servicechecker-result', action='store_true', help="print servicechecker raw results to STDOUT in addition to disk")
 
 
     args = parser.parse_args()
