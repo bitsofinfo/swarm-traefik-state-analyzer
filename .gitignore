@@ -2,6 +2,7 @@
 *.yaml
 *.yml
 *report.md
+*servicecheckerdb.yml
 
 *.ds_store
 

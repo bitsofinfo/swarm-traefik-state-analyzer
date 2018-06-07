@@ -339,7 +339,7 @@ def execServiceCheck(service_record_and_health_check):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,stdout_result):
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
@@ -628,7 +628,10 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_id,
                 yaml.dump(global_results_db, outfile, default_flow_style=False)
 
             logging.debug("Output written to: " + output_filename)
-    else:
+
+
+    # also to stdout?
+    if stdout_result:
         print()
         if output_format == 'json':
             print(json.dumps(global_results_db,indent=4))
@@ -654,6 +657,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+    parser.add_argument('-z', '--stdout-result', action='store_true', default="print results to STDOUT in addition to output-filename on disk")
 
     args = parser.parse_args()
 
@@ -664,4 +668,4 @@ if __name__ == '__main__':
 
     max_retries = int(args.max_retries)
 
-    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags)
+    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags,args.stdout_result)

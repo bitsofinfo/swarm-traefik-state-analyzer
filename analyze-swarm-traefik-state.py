@@ -36,7 +36,9 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-e', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
-    parser.add_argument('-p', '--report-stdout', action='store_true', help="print servicecheckerreport output to STDOUT in addition to file")
+    parser.add_argument('-p', '--stdout-servicecheckerreport-result', action='store_true', help="print servicecheckerreport.md output to STDOUT in addition to file")
+    parser.add_argument('-z', '--stdout-servicechecker-result', action='store_true', default="print servicechecker raw results to STDOUT in addition to disk")
+
 
     args = parser.parse_args()
 
@@ -69,9 +71,9 @@ if __name__ == '__main__':
     logging.info("Invoking servicechecker.execute().....")
     servicecheckerdb_file = path_prefix+"03_servicecheckerdb.json"
     servicechecker.max_retries = args.max_retries
-    servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_id,job_name,args.layers,args.threads,args.tags)
+    servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_id,job_name,args.layers,args.threads,args.tags,args.stdout_servicechecker_result)
 
     # make the report
     logging.info("Invoking servicecheckerreport.execute().....")
     servicecheckereport_file = path_prefix+"04_servicecheckerreport.md"
-    servicecheckerreport.generate(servicecheckerdb_file,servicecheckereport_file,args.verbose,args.report_stdout)
+    servicecheckerreport.generate(servicecheckerdb_file,servicecheckereport_file,args.verbose,args.stdout_servicecheckerreport_result)

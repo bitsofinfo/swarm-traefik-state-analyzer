@@ -305,6 +305,7 @@ Options:
 * `--output-filename`: path where the JSON results will be written
 * `--log-file`: path to log file, otherwise STDOUT
 * `--log-level`: python log level (DEBUG, WARN ... etc)
+* `--stdout-result`: print results to STDOUT in addition to output-filename on disk
 
 Produces (a ton of) output related to every health check executed, including attempts information as well as a convienent `curl` command you can use to try it again yourself: (truncated for brevity)
 ```
@@ -492,9 +493,13 @@ All of the data generated from `analyze-swarm-traefik-state.py` is stored by def
   --layers 0 1 2 3 4 \
   --tags health foo bar \
   --threads 30 \
-  --report-stdout \
+  --stdout-servicecheckerreport-result \
   [--verbose]
 ```
+
+Options:
+* `--stdout-servicecheckerreport-result`: print servicecheckerreport.md output to STDOUT in addition to file
+* `--stdout-servicechecker-result`: print servicechecker raw results to STDOUT in addition to disk
 
 The meaning for the options above are the same as and described in the separate sections above for each separate module
 
