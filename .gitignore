@@ -3,6 +3,10 @@
 *.yml
 *report.md
 
+*.ds_store
+
+
+
 *.log
 
 output/
