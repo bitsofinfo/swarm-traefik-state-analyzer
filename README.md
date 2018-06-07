@@ -570,7 +570,6 @@ This dashboard presents analytics organized by **layer**. At the top of the dash
 :-------------------------:|:-------------------------:
 ![](docs/grafana_overall_status.png)|![](docs/grafana_service_inspector.png)
 |Global Alerts|Layer Inspector|
-:-------------------------:|:-------------------------:
 ![](docs/grafana_global_alerts.png)|![](docs/grafana_layer_inspector.png)
 
 
