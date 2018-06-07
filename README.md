@@ -567,7 +567,7 @@ sts_analyzer_g_attempt_errors{classifier="none",context="pre_prod",dns="192.168.
 
 ## <a id="grafana"></a>Grafana dashboards
 
-Several Grafana dashboards are provided which consume the metrics produced by `servicecheckerdb2prometheus.py`
+Several Grafana dashboards are provided which consume the metrics produced by `servicecheckerdb2prometheus.py`. The dashboards are in json format within the `grafana/` dir
 
 **Overall Status**
 
@@ -584,8 +584,6 @@ This dashboard presents detailed analytics organized by **layer**. At the top of
 **Alerts: global**
 
 This dashboard is where several core health percentage and latency based alerts can be configured, both at the global level as well as per layer. Note at the time of this writing, Grafana does not support alerts on variable based queries hence this separate dashboard.
-
-[grafana.swarm-traefik-state-analyzer_layer_inspector.json](grafana/grafana.swarm-traefik-state-analyzer_layer_inspector.json)
 
 |Overall Status|Service Inspector|
 :-------------------------:|:-------------------------:
