@@ -35,11 +35,20 @@ def stringIsInt(s):
     except ValueError:
         return False
 
+# a prometheus client_python
+# custom "Collector": https://github.com/prometheus/client_python
+# This classes collect() method is called periodically
+# and it dumps the current state of the job_name_2_metrics_db
+# database of metrics
 class STSACollector(object):
 
+    # for controlling access to job_name_2_metrics_db
     lock = threading.RLock()
 
-    metric_ttl_seconds = 300
+    # default life of all metrics
+    # stored in job_name_2_metrics_db
+    # before they are purged
+    metric_ttl_seconds = 600
 
     # current database of our
     # metrics state organized by job_name
@@ -47,21 +56,26 @@ class STSACollector(object):
     # state of what is in here
     job_name_2_metrics_db = {}
 
-    def processHealthResultDb(self,health_result_db_path):
+    # Will analyze the service servicechekerdb file located
+    # at the given path and create approproiate metrics
+    # for it
+    def processServicecheckerDb(self,servicecheckerdb_path):
 
-        health_result_db = {}
-        with open(health_result_db_path) as f:
-            health_result_db = json.load(f)
+        # open the file
+        servicecheckerdb = {}
 
-        job_name = health_result_db['name']
-        job_id = health_result_db['id']
+        with open(servicecheckerdb_path) as f:
+            servicecheckerdb = json.load(f)
+
+        job_name = servicecheckerdb['name']
+        job_id = servicecheckerdb['id']
 
         logging.info("Processing servicecheckerdb: '%s'", job_id)
 
         latest_job_metrics = []
 
         # process service records for each one
-        for service_result in health_result_db['service_results']:
+        for service_result in servicecheckerdb['service_results']:
             collected_metrics = self.processServiceResult(service_result)
             latest_job_metrics.extend(collected_metrics)
 
@@ -104,30 +118,24 @@ class STSACollector(object):
                     metric_type = metric_def['metric_type']
 
                     if self.metricIsExpired(metric_def):
-                        print("Skipping expired metric: " + metric_name + " " + metric_def['created_at'])
+                        logging.debug("Skipping expired metric: %s %s", metric_name, metric_def['created_at'])
                         continue;
 
                     if metric_type in 'gauge':
                         if metric_name not in gauges_db:
                             gauges_db[metric_name] = GaugeMetricFamily(metric_name,metric_def['desc'],labels=list(metric_def['labels'].keys()))
 
-                        for x in metric_def['labels'].keys():
-                            val = metric_def['labels'][x]
-                            if val is None:
-                                print(x)
-                                exit(1)
                         gauges_db[metric_name].add_metric(list(metric_def['labels'].values()),metric_def['value'])
                     else:
-                        print("Unrecognized metric_type: " + metric_type)
-                        exit(1)
+                        logging.error("Unrecognized metric_type: %s ... skipping...", metric_type)
+
 
             # 2. Once built yield every Gauge
             for metric_name in gauges_db:
                 yield gauges_db[metric_name]
 
-        #except:
-        #    print(str(sys.exc_info()[:2]))
-        #    exit(1)
+        except Exception:
+            logger.exception("Unexpected error in collect()")
 
         finally:
             self.lock.release()
@@ -172,7 +180,24 @@ class STSACollector(object):
 
         return metrics_2_return
 
-    def get_service_layer_error_gauge_def(self, value, metric_name, desc,formal_name,layer,swarm,context,classifier,version,tags,docker_service_name,service_check_url,service_check_host,service_check_port,service_check_path,service_check_url_dns,error_key):
+    def get_service_layer_error_gauge_def(self,
+                                          value,
+                                          metric_name,
+                                          desc,
+                                          formal_name,
+                                          layer,
+                                          swarm,
+                                          context,
+                                          classifier,
+                                          version,
+                                          tags,
+                                          docker_service_name,
+                                          service_check_url,
+                                          service_check_host,
+                                          service_check_port,
+                                          service_check_path,
+                                          service_check_url_dns,
+                                          error_key):
         return { 'name' : metric_name,
                  'desc' :  desc,
                  'label_schema' : "service_layer_error",
@@ -344,7 +369,7 @@ class ServiceCheckerDBMonitor(FileSystemEventHandler):
             time.sleep(10)
 
             # process path...
-            self.stsa_collector.processHealthResultDb(event.src_path)
+            self.stsa_collector.processServicecheckerDb(event.src_path)
 
 
 ###########################
@@ -354,16 +379,16 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-dir', dest='input_dir', default="./output", help="Directory path to recursively monitor for new '*servicecheckerdb*' json output files")
     parser.add_argument('-p', '--metrics-port', dest='metrics_port', default=8000, help="HTTP port to expose /metrics at")
-    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
     parser.add_argument('-t', '--metric-ttl-seconds', dest='metric_ttl_seconds', default=300, help="TTL for generated metrics that will be exposed. This value should be > than the interval that new *servicecheckerdb*.json are created")
+    parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
 
     args = parser.parse_args()
 
-    print("Exposing metrics at: http://localhost:" + str(args.metrics_port) + "/metrics")
-    logging.basicConfig(level=logging.INFO,
+    logging.basicConfig(level=logging.getLevelName(args.log_level),
                         format='%(asctime)s - %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
-    path = sys.argv[1] if len(sys.argv) > 1 else '.'
+                        filename=args.log_file,filemode='w')
+    logging.Formatter.converter = time.gmtime
 
     # create watchdog to look for new files
     event_handler = ServiceCheckerDBMonitor()
@@ -382,6 +407,11 @@ if __name__ == '__main__':
 
     # Start up the server to expose the metrics.
     start_http_server(int(args.metrics_port))
+
+
+
+    logging.info("Exposing servicecheckerdb metrics for Prometheus at: http://localhost:%s/metrics",str(args.metrics_port))
+
 
     try:
         while True:

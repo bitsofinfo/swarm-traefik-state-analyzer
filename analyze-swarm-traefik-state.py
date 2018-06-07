@@ -9,11 +9,13 @@ import argparse
 import getopt, sys
 import ssl
 import datetime
+import logging
 import swarmstatedb
 import servicechecksdb
 import servicechecker
 import servicecheckerreport
 import os
+import time
 
 
 ###########################
@@ -32,9 +34,17 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--tags', nargs='+', default=["health"])
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
-    parser.add_argument('-x', '--minstdout', action="store_true", help="minimize stdout output")
+    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
+    parser.add_argument('-e', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+    parser.add_argument('-p', '--report-stdout', action='store_true', help="print servicecheckerreport output to STDOUT in addition to file")
 
     args = parser.parse_args()
+
+    logging.basicConfig(level=logging.getLevelName(args.log_level),
+                        format='%(asctime)s - %(message)s',
+                        filename=args.log_file,filemode='w')
+    logging.Formatter.converter = time.gmtime
+
 
     timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     job_name = args.swarm_name+"-"+args.job_name
@@ -46,22 +56,22 @@ if __name__ == '__main__':
     path_prefix = output_dir+job_id + "_"
 
     # generate service state db
-    print("\nInvoking swarmstatedb.generate().....")
+    logging.info("Invoking swarmstatedb.generate().....")
     swarmstatedb_file = path_prefix+"01_swarmstatedb.json"
-    swarmstatedb.generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,swarmstatedb_file,args.minstdout)
+    swarmstatedb.generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,swarmstatedb_file)
 
     # generate layer checks db
-    print("\nInvoking servicechecksdb.generate().....")
+    logging.info("Invoking servicechecksdb.generate().....")
     servicechecksdb_file = path_prefix+"02_servicechecksdb.json"
-    servicechecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,servicechecksdb_file,args.layers,args.tags,args.minstdout)
+    servicechecksdb.generate(swarmstatedb_file,args.swarm_info_repo_root,args.service_state_repo_root,servicechecksdb_file,args.layers,args.tags)
 
     # execute actual checks
-    print("\nInvoking servicechecker.execute().....")
+    logging.info("Invoking servicechecker.execute().....")
     servicecheckerdb_file = path_prefix+"03_servicecheckerdb.json"
     servicechecker.max_retries = args.max_retries
-    servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_id,job_name,args.layers,args.threads,args.tags,args.minstdout)
+    servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_id,job_name,args.layers,args.threads,args.tags)
 
     # make the report
-    print("\nInvoking servicecheckerreport.execute().....")
+    logging.info("Invoking servicecheckerreport.execute().....")
     servicecheckereport_file = path_prefix+"04_servicecheckerreport.md"
-    servicecheckerreport.generate(servicecheckerdb_file,servicecheckereport_file,args.verbose,args.minstdout)
+    servicecheckerreport.generate(servicecheckerdb_file,servicecheckereport_file,args.verbose,args.report_stdout)

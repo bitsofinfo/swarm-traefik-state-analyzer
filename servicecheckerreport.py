@@ -9,6 +9,8 @@ import argparse
 import getopt, sys
 import yaml
 import io
+import logging
+import time
 
 # r = round
 def r(n):
@@ -30,7 +32,7 @@ def fo(layer,db):
     return ("h:"+str(r(l['health_rating']))+ "%").ljust(9) + ("("+str(l['total_fail']) + "/" + str(l['total_ok']+l['total_fail']) +")").ljust(9) + ("a:" + str(l['total_attempts'])).ljust(7) + retry_percentage.ljust(8) + " " +resp_time
 
 # does the bulk of the work
-def generate(input_filename,output_filename,verbose,minimize_stdout):
+def generate(input_filename,output_filename,verbose,report_stdout):
     # output for report
     report_str = io.StringIO()
 
@@ -112,7 +114,7 @@ def generate(input_filename,output_filename,verbose,minimize_stdout):
     report_string = report_str.getvalue();
     report_str.close()
 
-    if not minimize_stdout:
+    if report_stdout:
         print(report_string)
 
     if output_filename is not None:
@@ -127,8 +129,15 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicecheckerdb.json", help="Filename of service check result database")
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicecheckerreport.md")
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose details in report")
-    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
+    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
+    parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+    parser.add_argument('-p', '--report-stdout', action='store_true', help="print servicecheckerreport output to STDOUT in addition to file")
 
     args = parser.parse_args()
 
-    generate(args.input_filename,args.output_filename,args.verbose,args.stdout,args.minstdout)
+    logging.basicConfig(level=logging.getLevelName(args.log_level),
+                        format='%(asctime)s - %(message)s',
+                        filename=args.log_file,filemode='w')
+    logging.Formatter.converter = time.gmtime
+
+    generate(args.input_filename,args.output_filename,args.verbose,args.report_stdout)

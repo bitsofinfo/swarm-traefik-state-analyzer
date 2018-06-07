@@ -3,6 +3,8 @@
 *.yml
 *report.md
 
+*.log
+
 output/
 output
 

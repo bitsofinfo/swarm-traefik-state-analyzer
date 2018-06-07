@@ -10,6 +10,8 @@ import argparse
 import getopt, sys
 import yaml
 import glob
+import logging
+import time
 
 def getServiceData(client,swarm_name,service_id):
     service_data = {"swarm_name":swarm_name,
@@ -27,7 +29,6 @@ def getServiceData(client,swarm_name,service_id):
         return []
 
     service_attrs = service.attrs
-    #pprint.pprint(service.attrs)
     service_endpoint = service_attrs['Endpoint']
     service_spec = service_attrs['Spec']
 
@@ -74,22 +75,21 @@ def getServiceData(client,swarm_name,service_id):
 #       that contains swarm footprint yaml files. i.e. 'prodswarm1.yml'
 # - output_filename: filename to write db to
 #
-def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename,minimize_stdout):
+def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename):
     # instantiate the client
-    print()
-    print("Reading swarm info files from: " + swarm_info_repo_root)
-    print("Targeting swarm: " + swarm_name)
+    logging.info("Reading swarm info files from: %s", swarm_info_repo_root)
+    logging.info("Targeting swarm: %s",swarm_name)
 
     docker_host = None
     for yml_file in glob.iglob(swarm_info_repo_root+"/**/"+swarm_name+".yml", recursive=True):
         with open(yml_file, 'r') as f:
-            print("Consuming config from: " + yml_file)
+            logging.info("Consuming config from: %s",yml_file)
             docker_host = yaml.load(f)['SWARM_MGR_URI']
 
     if docker_host is None:
-        print("ERROR: no SWARM_MGR_URI in located for: " + swarm_name)
+        logging.error("ERROR: no SWARM_MGR_URI in located for: %s", swarm_name)
 
-    print("Connecting to DOCKER_HOST: " + docker_host)
+    logging.info("Connecting to DOCKER_HOST: " + docker_host)
     client = docker.DockerClient(base_url=docker_host)
 
     # all the json records will be written here
@@ -114,7 +114,7 @@ def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename,mini
     if output_filename is not None:
         with open(output_filename, 'w') as outfile:
             json.dump(all_service_data, outfile, indent=4)
-            print("Output written to: " + output_filename)
+            logging.info("Output written to: " + output_filename)
     else:
         print()
         print(json.dumps(all_service_data,indent=4))
@@ -131,7 +131,14 @@ if __name__ == '__main__':
     parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True)
     parser.add_argument('-s', '--swarm-name', dest='swarm_name', required=True)
     parser.add_argument('-f', '--service-filter', dest='service_filter', required=False, help="i.e. '{\"name\":\"my-app\"}' Valid filters: id, name , label and mode")
-    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
+    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
+    parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+
     args = parser.parse_args()
 
-    generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename,args.minstdout)
+    logging.basicConfig(level=logging.getLevelName(args.log_level),
+                        format='%(asctime)s - %(message)s',
+                        filename=args.log_file,filemode='w')
+    logging.Formatter.converter = time.gmtime
+
+    generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename)

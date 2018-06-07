@@ -566,7 +566,10 @@ This dashboard presents analytics organized by **layer**. At the top of the dash
 
 [grafana.swarm-traefik-state-analyzer_layer_inspector.json](grafana/grafana.swarm-traefik-state-analyzer_layer_inspector.json)
 
-![grafana_dashboard](docs/grafanadb1.png)
+|              |              |
+:-------------------------:|:-------------------------:
+![](docs/grafana_overall_status.png)  |  ![](docs/grafana_service_inspector.png)
+![](docs/grafana_global_alerts.png)   |  ![](docs/grafana_layer_inspector.png)
 
 
 ## <a id="swarminfo"></a>[swarm-name].yml files

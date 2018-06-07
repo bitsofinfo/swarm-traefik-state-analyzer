@@ -12,8 +12,10 @@ import urllib.request
 import urllib.error
 import ssl
 import datetime
+import logging
 import socket
 import base64
+import time
 from multiprocessing import Pool, Process
 from jinja2 import Template
 from urllib.parse import urlparse
@@ -43,9 +45,6 @@ def toHex(s):
 # for max max_retries
 max_retries = None
 
-# min stdout
-minimize_stdout = False
-
 sslcontext = ssl.create_default_context()
 sslcontext.check_hostname = False
 sslcontext.verify_mode = ssl.CERT_NONE
@@ -69,6 +68,7 @@ def readHTTPResponse(response):
             response_data['as_string'] = response_str
     except Exception as e:
         response_data['as_string'] = "body read failed: " + str(sys.exc_info())
+        logging.exception("readHTTPResponse() Exception parsing body")
 
     return response_data
 
@@ -97,7 +97,6 @@ def calcFailPercentage(total_fail,total_ok):
 def execServiceCheck(service_record_and_health_check):
 
     max_retries = service_record_and_health_check['max_retries']
-    minimize_stdout = service_record_and_health_check['minimize_stdout']
 
     hc = service_record_and_health_check['health_check']
     service_record = service_record_and_health_check['service_record']
@@ -148,8 +147,8 @@ def execServiceCheck(service_record_and_health_check):
             curl_body = body_text.replace("'","\\'")
             curl_data = "-d '"+curl_body+"' "
 
-        if not minimize_stdout:
-            print("Checking: " + hc['method'] + " > "+ hc['url'] + " hh:" + host_header_val_4log)
+
+        logging.debug("Checking: " + hc['method'] + " > "+ hc['url'] + " hh:" + host_header_val_4log)
 
         request = urllib.request.Request(hc['url'],headers=headers,method=hc['method'],data=body_bytes)
 
@@ -157,6 +156,7 @@ def execServiceCheck(service_record_and_health_check):
         hc['curl'] = curl_cmd
 
     except Exception as e:
+        logging.exception("execServiceCheck() exception:")
         hc['result'] = { "success":False,
                          "ms":0,
                          "attempts":0,
@@ -175,8 +175,8 @@ def execServiceCheck(service_record_and_health_check):
             attempt_count += 1
             hc['result'] = { "success":False }
 
-            if attempt_count > 1 and not minimize_stdout:
-                print("   retryring: " + hc['url'])
+            if attempt_count > 1:
+                logging.debug("retryring: " + hc['url'])
 
             # log what it resolves to...
             dns_lookup_result = None
@@ -313,7 +313,7 @@ def execServiceCheck(service_record_and_health_check):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,min_stdout):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags):
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
@@ -325,17 +325,13 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_id,
     # seed max retries override
     max_retries = int(maximum_retries)
 
-    # seed minimize stdout
-    minimize_stdout = min_stdout
-
     # mthreaded...
     if (isinstance(threads,str)):
         threads = int(threads)
     exec_pool = Pool(threads)
 
     # instantiate the client
-    print()
-    print("Reading layer check db from: " + input_filename)
+    logging.debug("Reading layer check db from: " + input_filename)
 
     # where we will store our results
     global_results_db = {'id':job_id,
@@ -432,7 +428,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_id,
                         hc_executable = False
 
                 if hc_executable:
-                    executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries,'minimize_stdout':minimize_stdout})
+                    executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries})
                 else:
                     hc['result'] = { "success":True,
                                       "ms":0,
@@ -605,7 +601,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_id,
             else:
                 yaml.dump(global_results_db, outfile, default_flow_style=False)
 
-            print("Output written to: " + output_filename)
+            logging.debug("Output written to: " + output_filename)
     else:
         print()
         if output_format == 'json':
@@ -630,11 +626,16 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+')
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
-    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
+    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
+    parser.add_argument('-f', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
 
     args = parser.parse_args()
 
-    max_retries = int(args.max_retries)
-    minimize_stdout = args.minstdout
+    logging.basicConfig(level=logging.getLevelName(args.log_level),
+                        format='%(asctime)s - %(message)s',
+                        filename=args.log_file,filemode='w')
+    logging.Formatter.converter = time.gmtime
 
-    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags,args.minstdout)
+    max_retries = int(args.max_retries)
+
+    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags)

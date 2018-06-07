@@ -1,8 +1,8 @@
 {
   "__inputs": [
     {
-      "name": "DS_STS-PROMETHEUS",
-      "label": "",
+      "name": "DS_PROMETHEUS",
+      "label": "prometheus",
       "description": "",
       "type": "datasource",
       "pluginId": "prometheus",
@@ -60,11 +60,12 @@
       }
     ]
   },
+  "description": "Detailed view across all layers",
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1528169320634,
+  "iteration": 1528334498180,
   "links": [],
   "panels": [
     {
@@ -102,7 +103,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "For the give timeline, for $layer, shows the total number of OK, and failed service checks. This also shows the total number of attempts made for every check. If the total number of attempts is more than the total number of OK+FAILED this can indicate latencies, transient failures, or real long lasting problems etc.",
       "fill": 1,
       "gridPos": {
@@ -224,7 +225,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "$layer latest overall health",
       "format": "percent",
@@ -308,7 +309,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "$layer average overall health for the given timeframe for",
       "format": "percent",
@@ -391,7 +392,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "$layer latest % of failures",
       "format": "percent",
@@ -474,7 +475,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "for the timeframe selected:  $layer average % of failures",
       "format": "percent",
@@ -553,7 +554,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "For the given timeframe, shows the average response time in seconds/ milliseconds for all service checks executed in $layer",
       "fill": 1,
       "gridPos": {
@@ -654,7 +655,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 2,
       "description": "$layer latest average response time for all checks",
       "format": "s",
@@ -737,7 +738,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 2,
       "description": "for the timeframe selected:  $layer average response time for all checks",
       "format": "s",
@@ -819,7 +820,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "$layer latest percentage of all service checks that required further attempts (retries) to either succeed or fail before no more attempts were made.",
       "format": "percent",
@@ -903,7 +904,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "for the timeframe selected: $layer average percentage of all service checks that required further attempts (retries) to either succeed or fail before no more attempts were made.",
       "format": "percent",
@@ -980,7 +981,7 @@
     },
     {
       "columns": [],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "For the given timeframe, this shows all service checks attempts that failed. One individual attempt failure does not necessarily mean that a subsequent attempt did not succeed.  Causes could be real problems, transient, or misconfiguration etc.",
       "fontSize": "90%",
       "gridPos": {
@@ -1103,7 +1104,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Current/latest number of containers/replicas for all services running on the target swarm that are actively being checked",
       "format": "none",
       "gauge": {
@@ -1187,7 +1188,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Total number of $layer service checks",
       "format": "none",
       "gauge": {
@@ -1276,7 +1277,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1296,7 +1297,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1316,7 +1317,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1336,7 +1337,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1356,7 +1357,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1376,7 +1377,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1396,7 +1397,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1416,7 +1417,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1465,7 +1466,7 @@
     ]
   },
   "timezone": "",
-  "title": "swarm-traefik-state-analyzer - Layer Inspector",
+  "title": "STSA - Layer Inspector",
   "uid": "8p1JGzIik",
-  "version": 55
+  "version": 1
 }

@@ -10,6 +10,8 @@ import getopt, sys
 import glob
 import yaml
 import re
+import logging
+import time
 
 class SetEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -76,14 +78,14 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
     if 'service_ports' not in service_state:
         msg = "WARNING MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml has no 'service_ports' declared"
         docker_service_data['warnings'].add(msg)
-        print(msg)
+        logging.warn(msg)
         return []
 
     # get the service_port info for the desired service_port
     if not service_port in service_state["service_ports"]:
         msg = "WARNING MISCONFIG: "+docker_service_name_or_traefik_fqdn+" service-state.yml declared port: " + str(service_port) + " IS NOT PUBLISHED according to swarm!"
         docker_service_data['warnings'].add(msg)
-        print(msg)
+        logging.warn(msg)
         return []
 
     service_state_port_info = service_state["service_ports"][service_port]
@@ -93,7 +95,7 @@ def getServiceChecksForServicePort(layer,service_port,docker_service_name_or_tra
 
     # zero, log and return...
     if len(service_checks_for_port) == 0:
-        print("No service_checks for: " + docker_service_name_or_traefik_fqdn + " layer:"+str(layer)+ " port:" + str(service_port) + " tags:" + str(tags))
+        logging.warn("No service_checks for: " + docker_service_name_or_traefik_fqdn + " layer:"+str(layer)+ " port:" + str(service_port) + " tags:" + str(tags))
         return []
 
     # layer 4 is more unique
@@ -301,7 +303,7 @@ def getSwarmInfoMap(swarm_info_repo_root,swarm_name):
     if swarm_name not in swarm_name_2_swarm_info:
         for yml_file in glob.iglob(swarm_info_repo_root+"/**/"+swarm_name+".yml", recursive=True):
             with open(yml_file, 'r') as f:
-                print("Consuming config from: " + yml_file)
+                logging.debug("Consuming config from: " + yml_file)
                 swarm_name_2_swarm_info_yml = yaml.load(f)
                 swarm_name_2_swarm_info[swarm_name] = swarm_name_2_swarm_info_yml
 
@@ -309,7 +311,7 @@ def getSwarmInfoMap(swarm_info_repo_root,swarm_name):
 
 
 # Does the bulk of the work
-def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str,tags,minimize_stdout):
+def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str,tags):
 
     if tags is None:
         tags = []
@@ -319,10 +321,9 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         layers_to_process = list(map(int, layers_to_process_str))
 
     # instantiate the client
-    print()
-    print("Reading docker swarm service data from: " + input_filename)
-    print("Reading swarm info files from: " + swarm_info_repo_root)
-    print("Reading swarm service state YAML files from: " + service_state_repo_root)
+    logging.info("Reading docker swarm service data from: " + input_filename)
+    logging.info("Reading swarm info files from: " + swarm_info_repo_root)
+    logging.info("Reading swarm service state YAML files from: " + service_state_repo_root)
 
     # Load the docker swarm service json database
     with open(input_filename) as f:
@@ -418,12 +419,12 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
             service_state_servicechecks_info = service_state['service_checks']
 
         if service_state_servicechecks_info is not None and len(service_state_servicechecks_info) == 0:
-            print("No service_checks could be found in service state for: " + docker_service_data['name'] + " skipping...")
+            logging.warn("No service_checks could be found in service state for: " + docker_service_data['name'] + " skipping...")
             continue;
 
         # if none were found... skip and move on
         if service_state is None:
-            print("No service_state could be found for: " + docker_service_data['name'] + " skipping...")
+            logging.warn("No service_state could be found for: " + docker_service_data['name'] + " skipping...")
             continue;
 
 
@@ -497,9 +498,8 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
     if output_filename is not None:
         with open(output_filename, 'w') as outfile:
             json.dump(docker_service_data_db, outfile, indent=4, cls=SetEncoder)
-            print("Output written to: " + output_filename)
+            logging.info("Output written to: " + output_filename)
     else:
-        print()
         print(json.dumps(docker_service_data_db,indent=4))
 
 
@@ -516,7 +516,14 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicechecksdb.json")
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+', default=["health"])
-    parser.add_argument('-x', '--minstdout', action="store_true",help="minimize stdout output")
+    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
+    parser.add_argument('-f', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+
     args = parser.parse_args()
 
-    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags,args.minstdout)
+    logging.basicConfig(level=logging.getLevelName(args.log_level),
+                        format='%(asctime)s - %(message)s',
+                        filename=args.log_file,filemode='w')
+    logging.Formatter.converter = time.gmtime
+
+    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags)

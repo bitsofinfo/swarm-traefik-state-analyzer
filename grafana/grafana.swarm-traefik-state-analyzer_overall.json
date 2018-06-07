@@ -1,8 +1,8 @@
 {
   "__inputs": [
     {
-      "name": "DS_STS-PROMETHEUS",
-      "label": "",
+      "name": "DS_PROMETHEUS",
+      "label": "prometheus",
       "description": "",
       "type": "datasource",
       "pluginId": "prometheus",
@@ -65,7 +65,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1528169280075,
+  "iteration": 1528334559344,
   "links": [],
   "panels": [
     {
@@ -91,7 +91,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "Average overall health for the given timeframe",
       "format": "percent",
@@ -112,8 +112,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "title": "click to view full details of all layers",
           "type": "dashboard"
         }
@@ -182,7 +182,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Current/latest number of services running on the target swarm that are actively being checked",
       "format": "none",
       "gauge": {
@@ -202,8 +202,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-service-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Service Inspector",
+          "dashUri": "db/stsa-service-inspector",
+          "dashboard": "STSA - Service Inspector",
           "title": "Click to view list of services",
           "type": "dashboard"
         }
@@ -274,7 +274,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 1,
       "description": "Average percentage of service check failures for the given timeframe (after all possible attempts)",
       "format": "percent",
@@ -295,8 +295,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "title": "Click for full details of all layers",
           "type": "dashboard"
         }
@@ -364,7 +364,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Average health % of layer0 checks (direct checks via swarm nodes and service published ports). Click for more detail",
       "format": "percent",
       "gauge": {
@@ -384,8 +384,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "includeVars": true,
           "keepTime": true,
           "params": "var-layer=layer0",
@@ -457,7 +457,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Average health % of layer1 checks (direct checks via swarm nodes via Traefik published ports w/ host-headers). Click for more detail",
       "format": "percent",
       "gauge": {
@@ -477,8 +477,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "includeVars": true,
           "keepTime": true,
           "params": "var-layer=layer1",
@@ -550,7 +550,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Average health % of layer2 checks (direct checks via int/ext LBs w/ host-headers). Click for more detail",
       "format": "percent",
       "gauge": {
@@ -570,8 +570,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "includeVars": true,
           "keepTime": true,
           "params": "var-layer=layer2",
@@ -643,7 +643,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Average health % of layer3 checks (checks via standard URLs). Click for more detail",
       "format": "percent",
       "gauge": {
@@ -663,8 +663,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "includeVars": true,
           "keepTime": true,
           "params": "var-layer=layer3",
@@ -736,7 +736,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Average health % of layer4 checks (direct checks via other app proxies). Click for more detail",
       "format": "percent",
       "gauge": {
@@ -756,8 +756,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "includeVars": true,
           "keepTime": true,
           "params": "var-layer=layer4",
@@ -843,7 +843,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Current/latest number of containers/replicas for all services running on the target swarm that are actively being checked",
       "format": "none",
       "gauge": {
@@ -863,8 +863,8 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-service-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Service Inspector",
+          "dashUri": "db/stsa-service-inspector",
+          "dashboard": "STSA - Service Inspector",
           "title": "click to view list of services",
           "type": "dashboard"
         }
@@ -934,7 +934,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#d44a3a"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "decimals": 2,
       "description": "Average response time across all service checks executed in the given timeframe",
       "format": "s",
@@ -955,9 +955,9 @@
       "interval": null,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
-          "title": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
+          "title": "STSA - Layer Inspector",
           "type": "dashboard"
         }
       ],
@@ -1024,7 +1024,7 @@
         "rgba(237, 129, 40, 0.89)",
         "#299c46"
       ],
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "Current/latest total number of checks against services running on the target swarm",
       "format": "none",
       "gauge": {
@@ -1104,7 +1104,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "For the give timeline, across all layers, shows the total number of OK, and failed service checks. This also shows the total number of attempts made for every check. If the total number of attempts is more than the total number of OK+FAILED this can indicate latencies, transient failures, or real long lasting problems etc.",
       "fill": 1,
       "gridPos": {
@@ -1130,8 +1130,8 @@
       "linewidth": 1,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "includeVars": true,
           "keepTime": true,
           "targetBlank": true,
@@ -1231,7 +1231,7 @@
       "description": "",
       "folderId": 0,
       "gridPos": {
-        "h": 6,
+        "h": 8,
         "w": 6,
         "x": 18,
         "y": 9
@@ -1240,7 +1240,7 @@
       "id": 308,
       "limit": 10,
       "links": [],
-      "query": "swarm-traefik",
+      "query": "stsa",
       "recent": false,
       "search": true,
       "starred": false,
@@ -1254,7 +1254,7 @@
       "bars": false,
       "dashLength": 10,
       "dashes": false,
-      "datasource": "${DS_STS-PROMETHEUS}",
+      "datasource": "${DS_PROMETHEUS}",
       "description": "For the given timeframe, shows the average response time in seconds/ milliseconds for all service checks executed.",
       "fill": 1,
       "gridPos": {
@@ -1280,8 +1280,8 @@
       "linewidth": 1,
       "links": [
         {
-          "dashUri": "db/swarm-traefik-state-analyzer-layer-inspector",
-          "dashboard": "swarm-traefik-state-analyzer Layer Inspector",
+          "dashUri": "db/stsa-layer-inspector",
+          "dashboard": "STSA - Layer Inspector",
           "includeVars": true,
           "keepTime": true,
           "targetBlank": true,
@@ -1305,7 +1305,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "avg(sts_analyzer_g_avg_resp_time_seconds{swarm=~\"$swarm\",context=~\"$context\",formal_name=~\"$formal_name\"})\n",
+          "expr": "sum(sts_analyzer_g_total_resp_time_seconds{swarm=~\"$swarm\",context=~\"$context\",formal_name=~\"$formal_name\"}) \n/ \nsum(sts_analyzer_g_total_checks{swarm=~\"$swarm\",context=~\"$context\",formal_name=~\"$formal_name\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -1370,7 +1370,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1390,7 +1390,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1410,7 +1410,7 @@
       {
         "allValue": null,
         "current": {},
-        "datasource": "${DS_STS-PROMETHEUS}",
+        "datasource": "${DS_PROMETHEUS}",
         "hide": 0,
         "includeAll": true,
         "label": null,
@@ -1459,7 +1459,7 @@
     ]
   },
   "timezone": "",
-  "title": "swarm-traefik-state-analyzer - Overall",
+  "title": "STSA - Overall Status",
   "uid": "ZG3wMSIik",
-  "version": 30
+  "version": 8
 }
