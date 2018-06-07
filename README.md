@@ -641,7 +641,7 @@ service_ports:
     name: "https access port"
     desc: "description"
     protocol: "https"
-    classifiers
+    classifiers:
       - "mode-a"
       - "mode-b"
 
