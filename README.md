@@ -92,7 +92,7 @@ Options:
 * `--minstdout`: minimize the amount of STDOUT output
 
 Produces output:
-```json
+```
 [
     {
         "swarm_name": "myswarm1",
@@ -109,8 +109,7 @@ Produces output:
             "bitsofinfo.test.com",
             "my-app-prod-11-beta2.test.com"
         ]
-    },
-    ...
+    }
 ```
 
 ## <a id="servicechecksdb"></a>servicechecksdb.py
@@ -140,7 +139,7 @@ Options:
 * `--minstdout`: minimize the amount of STDOUT output
 
 Decorates additional info to `swarmstatedb` output from `service-state.yml` files:
-```json
+```
   ...
   "warnings": [],
   "context": {
@@ -301,7 +300,7 @@ Options:
 * `--minstdout`: minimize the amount of STDOUT output
 
 Produces (a ton of) output related to every health check executed, including attempts information as well as a convienent `curl` command you can use to try it again yourself: (truncated for brevity)
-```json
+```
   {
       "name": "20180520_003903-myswarm1-test",
       "metrics": {
