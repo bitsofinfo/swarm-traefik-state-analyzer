@@ -136,7 +136,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.getLevelName(args.log_level),
-                        format='%(asctime)s - %(message)s',
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         filename=args.log_file,filemode='w')
     logging.Formatter.converter = time.gmtime
 

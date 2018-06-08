@@ -40,9 +40,10 @@ if __name__ == '__main__':
     parser.add_argument('-e', '--log-stdout', action='store_true', help="Log to STDOUT, if not present will create logfile under --output-dir")
     parser.add_argument('-p', '--stdout-servicecheckerreport-result', action='store_true', help="print servicecheckerreport.md output to STDOUT in addition to file")
     parser.add_argument('-z', '--stdout-servicechecker-result', action='store_true', help="print servicechecker raw results to STDOUT in addition to disk")
-    parser.add_argument('-m', '--daemon', action='store_true', help="Run as a long lived process, re-analyzing per interval settings")
+    parser.add_argument('-m', '--daemon', action='store_true', help="Run as a long lived process, re-analyzing per interval settings, if omitted, will run 1x and exit")
     parser.add_argument('-q', '--daemon-interval-seconds', default=300, help="When in daemon mode, how long to sleep between runs, default 300")
     parser.add_argument('-c', '--daemon-interval-randomize', action='store_true', help="When in daemon mode, if enabled, will randomize the sleep between --daemon-interval-seconds and (--daemon-interval-seconds X 2)")
+    parser.add_argument('-y', '--pre-analyze-script-path', default=None, help="Optional, path to executable/script that will be invoked prior to starting any analysis. No arguments, STDOUT captured and logged. If --daemon this will be invoked at the start of each iteration.")
 
 
     args = parser.parse_args()
@@ -61,7 +62,7 @@ if __name__ == '__main__':
 
     # basic logging config
     logging.basicConfig(level=logging.getLevelName(args.log_level),
-                        format='%(asctime)s - %(message)s',
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         handlers=log_handlers)
     logging.Formatter.converter = time.gmtime
 
@@ -80,6 +81,18 @@ if __name__ == '__main__':
             path_prefix = output_dir+job_id + "_"
 
             logging.info("Starting analysis, output dir: " + output_dir)
+
+            # invoke pre-analysis script
+            if args.pre_analyze_script_path is not None:
+                if not os.path.isfile(args.pre_analyze_script_path):
+                    logging.info("pre_analyze_script_path does NOT exist!: " + args.pre_analyze_script_path)
+                else:
+                    try:
+                        logging.info("invoking... pre_analyze_script_path: " + args.pre_analyze_script_path)
+                        cmd_result=os.popen(args.pre_analyze_script_path).read()
+                        logging.info("pre_analyze_script_path invoked OK, output: \n" + cmd_result)
+                    except Exception as e:
+                        logging.exception("pre_analyze_script_path invocation error")
 
             # generate service state db
             logging.info("Invoking swarmstatedb.generate().....")
