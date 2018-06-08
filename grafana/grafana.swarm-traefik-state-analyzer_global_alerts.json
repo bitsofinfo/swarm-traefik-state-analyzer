@@ -2,7 +2,7 @@
   "__inputs": [
     {
       "name": "DS_PROMETHEUS",
-      "label": "prometheus",
+      "label": "Prometheus",
       "description": "",
       "type": "datasource",
       "pluginId": "prometheus",
@@ -102,7 +102,11 @@
         "message": "Avg global health% is < 80%  over a 10 minute period alert",
         "name": "Alert if avg global health% is < 80%  over a 10 minute period alert",
         "noDataState": "no_data",
-        "notifications": []
+        "notifications": [
+          {
+            "id": 1
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
@@ -251,7 +255,11 @@
         "message": "Avg global latency is > 1.0s over a 10 minute period",
         "name": "Alert if avg global latency is > 1.0s over a 10 minute period",
         "noDataState": "no_data",
-        "notifications": []
+        "notifications": [
+          {
+            "id": 1
+          }
+        ]
       },
       "aliasColors": {},
       "bars": false,
@@ -1952,5 +1960,5 @@
   "timezone": "",
   "title": "STSA - Alerts: global",
   "uid": "1C_vUtImz",
-  "version": 55
+  "version": 4
 }

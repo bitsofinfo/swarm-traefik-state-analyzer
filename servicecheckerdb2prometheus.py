@@ -315,6 +315,12 @@ class STSACollector(object):
                     error_short_key = "bodyeval_fail"
                 elif 'nodename nor servname provided, or not known' in attempt_error:
                     error_short_key = "dns_fail"
+                elif 'Name does not resolve' in attempt_error:
+                    error_short_key = "dns_fail"
+                elif 'gaierror' and 'Try again' in attempt_error:
+                    error_short_key = "dns_fail"
+                elif 'Remote end closed connection without response' in attempt_error:
+                    error_short_key = "remote_cut_conn"
                 elif 'Connection refused' in attempt_error:
                     error_short_key = "conn_refused"
                 else:
