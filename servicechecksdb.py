@@ -324,7 +324,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
     logging.info("Reading docker swarm service data from: " + input_filename)
     logging.info("Reading swarm info files from: " + swarm_info_repo_root)
     logging.info("Reading swarm service state YAML files from: " + service_state_repo_root)
-    logging.info("Using fqdn_filter: " + fqdn_filter)
+    logging.info("Using fqdn_filter: " + str(fqdn_filter))
 
     # Load the docker swarm service json database
     with open(input_filename) as f:
