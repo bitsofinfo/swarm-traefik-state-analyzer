@@ -59,7 +59,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": null,
-  "iteration": 1528484428375,
+  "iteration": 1528491257378,
   "links": [],
   "panels": [
     {
@@ -156,7 +156,7 @@
           "refId": "A"
         }
       ],
-      "thresholds": "50,80",
+      "thresholds": "10,20",
       "title": "layer-0",
       "type": "singlestat",
       "valueFontSize": "100%",
@@ -249,7 +249,7 @@
           "refId": "A"
         }
       ],
-      "thresholds": "50,80",
+      "thresholds": "10,20",
       "title": "layer-1",
       "type": "singlestat",
       "valueFontSize": "100%",
@@ -342,7 +342,7 @@
           "refId": "A"
         }
       ],
-      "thresholds": "50,80",
+      "thresholds": "10,20",
       "title": "layer-2",
       "type": "singlestat",
       "valueFontSize": "100%",
@@ -528,7 +528,7 @@
           "refId": "A"
         }
       ],
-      "thresholds": "50,80",
+      "thresholds": "10,20",
       "title": "layer-4",
       "type": "singlestat",
       "valueFontSize": "100%",
@@ -1014,5 +1014,5 @@
   "timezone": "",
   "title": "STSA - Error Inspector",
   "uid": "xC8XJtIik",
-  "version": 2
+  "version": 4
 }

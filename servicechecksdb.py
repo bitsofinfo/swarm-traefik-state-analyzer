@@ -288,11 +288,8 @@ def getServiceState(docker_service_data_record):
     # more than one... sort by the longest first (most specific)
     # and just return 1st hit, best we can do
     for name in sorted(matches, key=len, reverse=True):
-        print(name)
         if name in docker_service_data_record['name']:
-            print("match! -> " +docker_service_data_record['name'])
-
-    exit(1)
+            return matches[name]
 
 # Given a logical  "swarm name" (i.e. myswarm2)
 # return a list of Docker host FQDN's in that swarm
