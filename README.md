@@ -96,6 +96,7 @@ Options:
 * `--output-filename`: path where the JSON output will be written
 * `--log-file`: path to log file, otherwise STDOUT
 * `--log-level`: python log level (DEBUG, WARN ... etc)
+* `--service-name-exclude-regex`: Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex
 
 Produces output:
 ```
@@ -512,6 +513,7 @@ Options:
 * `--daemon-interval-randomize`: When in daemon mode, if enabled, will randomize the sleep between --daemon-interval-seconds and (--daemon-interval-seconds X 2)
 * `--pre-analyze-script-path`: Optional, path to executable/script that will be invoked prior to starting any analysis. If --daemon this will be invoked at the start of each iteration.
 * `--retain-output-hours`: Optional, default 1, the number of hours of data to retain, purges output dirs older than this time threshold
+* `--service-name-exclude-regex`: Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex`
 
 The meaning for the options above are the same as and described in the separate sections above for each separate module
 

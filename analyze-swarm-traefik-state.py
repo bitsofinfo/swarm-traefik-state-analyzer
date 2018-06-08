@@ -47,6 +47,7 @@ if __name__ == '__main__':
     parser.add_argument('-c', '--daemon-interval-randomize', action='store_true', help="When in daemon mode, if enabled, will randomize the sleep between --daemon-interval-seconds and (--daemon-interval-seconds X 2)")
     parser.add_argument('-y', '--pre-analyze-script-path', default=None, help="Optional, path to executable/script that will be invoked prior to starting any analysis. No arguments, STDOUT captured and logged. If --daemon this will be invoked at the start of each iteration.")
     parser.add_argument('-u', '--retain-output-hours', default=1, help="Optional, default 1, the number of hours of data to retain, purges output dirs older than this time threshold")
+    parser.add_argument('-w', '--service-name-exclude-regex', dest='service_name_exclude_regex', help="Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex")
 
 
     args = parser.parse_args()
@@ -114,7 +115,7 @@ if __name__ == '__main__':
             # generate service state db
             logging.info("Invoking swarmstatedb.generate().....")
             swarmstatedb_file = path_prefix+"01_swarmstatedb.json"
-            swarmstatedb.generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,swarmstatedb_file)
+            swarmstatedb.generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,swarmstatedb_file,args.service_name_exclude_regex)
 
             # generate layer checks db
             logging.info("Invoking servicechecksdb.generate().....")

@@ -75,7 +75,7 @@ def getServiceData(client,swarm_name,service_id):
 #       that contains swarm footprint yaml files. i.e. 'prodswarm1.yml'
 # - output_filename: filename to write db to
 #
-def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename):
+def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename,service_name_exclude_regex):
     # instantiate the client
     logging.info("Reading swarm info files from: %s", swarm_info_repo_root)
     logging.info("Targeting swarm: %s",swarm_name)
@@ -104,10 +104,24 @@ def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename):
     else:
         service_list_result = client.services.list()
 
+    # for negating what was returned by api filter
+    service_name_re_filter = None
+    if service_name_exclude_regex:
+        service_name_re_filter = re.compile(service_name_exclude_regex,re.M|re.I)
+
     # process all found results
     for service in service_list_result:
         service_data = getServiceData(client,swarm_name,service.attrs['ID'])
-        all_service_data.append(service_data)
+
+        service_qualifies = True
+
+        if service_name_re_filter:
+            if service_name_re_filter.match(service_data['name']):
+                service_qualifies = False
+                logging.info("Excluding returned service due to service_name_exclude_regex match: " + service_data['name'])
+
+        if service_qualifies:
+            all_service_data.append(service_data)
 
 
     # to json
@@ -133,6 +147,7 @@ if __name__ == '__main__':
     parser.add_argument('-f', '--service-filter', dest='service_filter', required=False, help="i.e. '{\"name\":\"my-app\"}' Valid filters: id, name , label and mode")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+    parser.add_argument('-n', '--service-name-exclude-regex', dest='service_name_exclude_regex', help="Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex")
 
     args = parser.parse_args()
 
@@ -141,4 +156,4 @@ if __name__ == '__main__':
                         filename=args.log_file,filemode='w')
     logging.Formatter.converter = time.gmtime
 
-    generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename)
+    generate(args.swarm_name,args.service_filter,args.swarm_info_repo_root,args.output_filename,args.service_name_exclude_regex)

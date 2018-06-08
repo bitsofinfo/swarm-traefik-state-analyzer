@@ -270,12 +270,29 @@ def toServiceCheckEntry(layer,host_header,url_root,target_container_port,service
 # Given a record from docker_service_data_db
 # return the relevant  service state data structure
 def getServiceState(docker_service_data_record):
+
+    # some names can overlap so 1st pass
+    # we collect potentials...
+    matches = {}
     for alias in aliases_2_formal_name:
         if alias in docker_service_data_record['name']:
-            return aliases_2_formal_name[alias]
+            matches[alias] = aliases_2_formal_name[alias]
     for formal_name in formal_name_2_service_state:
         if formal_name in docker_service_data_record['name']:
-            return formal_name_2_service_state[formal_name]
+            matches[formal_name] = formal_name_2_service_state[formal_name]
+
+    # if just one return it
+    if len(matches.keys()) == 1:
+        return list(matches.values())[0]
+
+    # more than one... sort by the longest first (most specific)
+    # and just return 1st hit, best we can do
+    for name in sorted(matches, key=len, reverse=True):
+        print(name)
+        if name in docker_service_data_record['name']:
+            print("match! -> " +docker_service_data_record['name'])
+
+    exit(1)
 
 # Given a logical  "swarm name" (i.e. myswarm2)
 # return a list of Docker host FQDN's in that swarm
