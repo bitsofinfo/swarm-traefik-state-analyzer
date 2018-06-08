@@ -760,7 +760,6 @@ docker run \
     --service-filter '{"name":"myapp-prod"}' \
     --layers  3  \
     --threads 30 \
-    --log-file /output/analyze-swarm-traefik-state.log \
     --tags health version \
     --stdout-servicechecker-result
 ```
