@@ -274,7 +274,7 @@ def execServiceCheck(service_record_and_health_check):
             hc['result'] = { "success":False }
 
             if attempt_count > 1:
-                logging.debug("retryring: " + hc['url'])
+                logging.debug("retrying: " + hc['url'])
 
             # log what it resolves to...
             dns_lookup_result = None

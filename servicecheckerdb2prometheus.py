@@ -22,6 +22,8 @@ from watchdog.events import FileSystemEventHandler
 from http import HTTPStatus
 from urllib.parse import urlparse
 from prometheus_client.core import GaugeMetricFamily, CounterMetricFamily, REGISTRY
+import concurrent.futures
+
 
 # makes name "metric" name compliant
 def m(s):
@@ -103,7 +105,6 @@ class STSACollector(object):
 
         try:
             self.lock.acquire()
-
             gauges_db = {}
 
             # 1. build our in-memory set of current state
@@ -355,8 +356,20 @@ class ServiceCheckerDBMonitor(FileSystemEventHandler):
     # file paths to process with this collector
     stsa_collector = None
 
+    # max threads
+    threads = 1
+
+    # our Pool
+    executor = None
+
+    def set_threads(self, t):
+        self.threads = t
+
     def on_created(self, event):
         super(ServiceCheckerDBMonitor, self).on_created(event)
+
+        if not self.executor:
+            self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.threads)
 
         if event.is_directory:
             return
@@ -368,8 +381,43 @@ class ServiceCheckerDBMonitor(FileSystemEventHandler):
             # give write time to close....
             time.sleep(10)
 
-            # process path...
-            self.stsa_collector.processServicecheckerDb(event.src_path)
+            self.executor.submit(self.stsa_collector.processServicecheckerDb,event.src_path)
+
+
+
+def init_watching(metric_ttl_seconds,input_dir,listen_port,listen_addr,threads):
+
+    # mthreaded...
+    if (isinstance(threads,str)):
+        threads = int(threads)
+
+    # create watchdog to look for new files
+    event_handler = ServiceCheckerDBMonitor()
+    event_handler.set_threads(threads)
+
+    # create prometheus python client collector for metrics
+    # our watchdog registers files to process in this collector
+    event_handler.stsa_collector = STSACollector()
+    event_handler.stsa_collector.metric_ttl_seconds = int(metric_ttl_seconds)
+
+    # schedule our file watchdog
+    observer = Observer()
+    observer.schedule(event_handler, input_dir, recursive=True)
+    observer.start()
+
+    REGISTRY.register(event_handler.stsa_collector)
+
+    # Start up the server to expose the metrics.
+    start_http_server(int(listen_port),addr=listen_addr)
+
+    logging.info("Exposing servicecheckerdb metrics for Prometheus at: http://%s:%s/metrics",listen_addr,str(listen_port))
+
+    try:
+        while True:
+            time.sleep(30)
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
 
 
 ###########################
@@ -378,10 +426,13 @@ class ServiceCheckerDBMonitor(FileSystemEventHandler):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-dir', dest='input_dir', default="./output", help="Directory path to recursively monitor for new '*servicecheckerdb*' json output files")
-    parser.add_argument('-p', '--metrics-port', dest='metrics_port', default=8000, help="HTTP port to expose /metrics at")
+    parser.add_argument('-p', '--listen-port', dest='listen_port', default=8000, help="HTTP port to expose /metrics at")
+    parser.add_argument('-a', '--listen-addr', dest='listen_addr', default='127.0.0.1', help="Address to expost metrics http server on")
     parser.add_argument('-t', '--metric-ttl-seconds', dest='metric_ttl_seconds', default=300, help="TTL for generated metrics that will be exposed. This value should be > than the interval that new *servicecheckerdb*.json are created")
     parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
+    parser.add_argument('-d', '--threads', dest='threads', default=1, help="max threads for watchdog file processing")
+
 
     args = parser.parse_args()
 
@@ -390,32 +441,5 @@ if __name__ == '__main__':
                         filename=args.log_file,filemode='w')
     logging.Formatter.converter = time.gmtime
 
-    # create watchdog to look for new files
-    event_handler = ServiceCheckerDBMonitor()
 
-    # create prometheus python client collector for metrics
-    # our watchdog registers files to process in this collector
-    event_handler.stsa_collector = STSACollector()
-    event_handler.stsa_collector.metric_ttl_seconds = int(args.metric_ttl_seconds)
-
-    # schedule our file watchdog
-    observer = Observer()
-    observer.schedule(event_handler, args.input_dir, recursive=True)
-    observer.start()
-
-    REGISTRY.register(event_handler.stsa_collector)
-
-    # Start up the server to expose the metrics.
-    start_http_server(int(args.metrics_port))
-
-
-
-    logging.info("Exposing servicecheckerdb metrics for Prometheus at: http://localhost:%s/metrics",str(args.metrics_port))
-
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
+    init_watching(args.metric_ttl_seconds,args.input_dir,args.listen_port,args.listen_addr,args.threads)
