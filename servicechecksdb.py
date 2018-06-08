@@ -561,7 +561,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--tags', nargs='+', default=["health"])
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-f', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
-    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', help="Regex filter to limit which FQDNs checks actually get computed within --layers being checked")
+    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs checks actually get computed within --layers being checked")
 
     args = parser.parse_args()
 

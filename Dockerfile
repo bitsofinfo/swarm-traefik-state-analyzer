@@ -1,5 +1,7 @@
 FROM python:3.6.5-alpine
 
+EXPOSE 8000
+
 # install the analyzer under /usr/local/bin
 RUN apk update ; \
     apk upgrade ; \

@@ -34,7 +34,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', action='store_true', help="verbose output for servicecheckerreport")
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+', default=["health"])
-    parser.add_argument('-a', '--fqdn-filter', dest='fqdn_filter', default="Regex filter to limit which FQDNs are included in service checks for all --layers being checked")
+    parser.add_argument('-a', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs are included in service checks for all --layers being checked")
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")

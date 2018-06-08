@@ -674,7 +674,7 @@ if __name__ == '__main__':
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
-    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', help="Regex filter to limit which FQDNs actually get checked across any --layers being checked")
+    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs actually get checked across any --layers being checked")
 
     args = parser.parse_args()
 
