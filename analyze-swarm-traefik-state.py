@@ -17,6 +17,7 @@ import servicechecker
 import servicecheckerreport
 import os
 import time
+import shutil
 from logging.handlers import TimedRotatingFileHandler
 
 
@@ -45,6 +46,7 @@ if __name__ == '__main__':
     parser.add_argument('-q', '--daemon-interval-seconds', default=300, help="When in daemon mode, how long to sleep between runs, default 300")
     parser.add_argument('-c', '--daemon-interval-randomize', action='store_true', help="When in daemon mode, if enabled, will randomize the sleep between --daemon-interval-seconds and (--daemon-interval-seconds X 2)")
     parser.add_argument('-y', '--pre-analyze-script-path', default=None, help="Optional, path to executable/script that will be invoked prior to starting any analysis. No arguments, STDOUT captured and logged. If --daemon this will be invoked at the start of each iteration.")
+    parser.add_argument('-u', '--retain-output-hours', default=1, help="Optional, default 1, the number of hours of data to retain, purges output dirs older than this time threshold")
 
 
     args = parser.parse_args()
@@ -73,6 +75,20 @@ if __name__ == '__main__':
     while args.daemon or runs < 1:
 
         try:
+
+            # cleanup old data
+            if args.retain_output_hours is not None:
+                now = time.time()
+                purge_older_than = now - (float(args.retain_output_hours) * 60 * 60)
+                for root, dirs, files in os.walk(job_dir, topdown=False):
+                    for _dir in dirs:
+                        toeval = job_dir+"/"+_dir
+                        dir_timestamp = os.path.getmtime(toeval)
+                        if dir_timestamp < purge_older_than:
+                            logging.debug("Removing old directory: " +toeval)
+                            shutil.rmtree(toeval)
+
+
             timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             job_id = timestamp+"-"+job_name
             output_dir = job_dir+"/"+job_id+"/"

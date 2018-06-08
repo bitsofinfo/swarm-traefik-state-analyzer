@@ -511,6 +511,7 @@ Options:
 * `--daemon-interval-seconds`: When in daemon mode, how long to sleep between runs, default 300
 * `--daemon-interval-randomize`: When in daemon mode, if enabled, will randomize the sleep between --daemon-interval-seconds and (--daemon-interval-seconds X 2)
 * `--pre-analyze-script-path`: Optional, path to executable/script that will be invoked prior to starting any analysis. If --daemon this will be invoked at the start of each iteration.
+* `--retain-output-hours`: Optional, default 1, the number of hours of data to retain, purges output dirs older than this time threshold
 
 The meaning for the options above are the same as and described in the separate sections above for each separate module
 
