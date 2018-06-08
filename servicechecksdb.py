@@ -311,7 +311,7 @@ def getSwarmInfoMap(swarm_info_repo_root,swarm_name):
 
 
 # Does the bulk of the work
-def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str,tags):
+def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_filename,layers_to_process_str,tags,fqdn_filter):
 
     if tags is None:
         tags = []
@@ -324,6 +324,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
     logging.info("Reading docker swarm service data from: " + input_filename)
     logging.info("Reading swarm info files from: " + swarm_info_repo_root)
     logging.info("Reading swarm service state YAML files from: " + service_state_repo_root)
+    logging.info("Using fqdn_filter: " + fqdn_filter)
 
     # Load the docker swarm service json database
     with open(input_filename) as f:
@@ -443,6 +444,9 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                                                 }
 
 
+        fqdn_re_filter = None
+        if fqdn_filter:
+            fqdn_re_filter = re.compile(fqdn_filter,re.M|re.I)
 
         # layer-0: swarm direct checks
         if 0 in layers_to_process:
@@ -455,7 +459,14 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                     for hc in getServiceChecksForServicePort(0,target_container_port,docker_service_name,service_state,tags,docker_service_data):
                         url = service_state['service_ports'][target_container_port]["protocol"]+"://"+host+":"+str(swarm_pub_port)
                         hc_entry = toServiceCheckEntry(0,None,url,target_container_port,hc,docker_service_name+" swarm service port direct")
-                        docker_service_data['service_checks']['layer0'].append(hc_entry)
+
+                        hc_qualifies = True
+                        if fqdn_re_filter:
+                            if not fqdn_re_filter.match(hc_entry['url']):
+                                hc_qualifies = False
+
+                        if hc_qualifies:
+                            docker_service_data['service_checks']['layer0'].append(hc_entry)
 
 
 
@@ -465,21 +476,42 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                 for fqdn in docker_service_data['traefik_host_labels']:
                     for hc in getServiceChecksForServiceAnyPort(1,fqdn,service_state,tags,docker_service_data):
                         hc_entry = toServiceCheckEntry(1,fqdn,"https://"+host+":"+str(traefik_port),None,hc,docker_service_name+" via traefik swarm port")
-                        docker_service_data['service_checks']['layer1'].append(hc_entry)
+
+                        hc_qualifies = True
+                        if fqdn_re_filter:
+                            if not fqdn_re_filter.match(hc_entry['url']):
+                                hc_qualifies = False
+
+                        if hc_qualifies:
+                            docker_service_data['service_checks']['layer1'].append(hc_entry)
 
         # layer-2: load-balancers
         if 2 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
                 for hc in getServiceChecksForServiceAnyPort(2,fqdn,service_state,tags,docker_service_data):
                     hc_entry = toServiceCheckEntry(2,fqdn,"https://"+load_balancer,None,hc,docker_service_name+" via load balancer")
-                    docker_service_data['service_checks']['layer2'].append(hc_entry)
+
+                    hc_qualifies = True
+                    if fqdn_re_filter:
+                        if not fqdn_re_filter.match(hc_entry['url']):
+                            hc_qualifies = False
+
+                    if hc_qualifies:
+                        docker_service_data['service_checks']['layer2'].append(hc_entry)
 
         # layer-3: straight, FQDN access
         if 3 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
                 for hc in getServiceChecksForServiceAnyPort(3,fqdn,service_state,tags,docker_service_data):
                     hc_entry = toServiceCheckEntry(3,None,"https://"+fqdn,None,hc,docker_service_name+" via normal fqdn access")
-                    docker_service_data['service_checks']['layer3'].append(hc_entry)
+
+                    hc_qualifies = True
+                    if fqdn_re_filter:
+                        if not fqdn_re_filter.match(hc_entry['url']):
+                            hc_qualifies = False
+
+                    if hc_qualifies:
+                        docker_service_data['service_checks']['layer3'].append(hc_entry)
 
         # layer-4: these are custom and vary based on context
         # typically another proxy beyond layer3 so the root url
@@ -495,7 +527,14 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                     if context_name in docker_service_name:
                         for url_root in contexts[context_name]['url_roots']:
                             hc_entry = toServiceCheckEntry(4,None,url_root,None,hc,docker_service_name+" via layer 4 custom: " + url_root)
-                            docker_service_data['service_checks']['layer4'].append(hc_entry)
+
+                            hc_qualifies = True
+                            if fqdn_re_filter:
+                                if not fqdn_re_filter.match(hc_entry['url']):
+                                    hc_qualifies = False
+
+                            if hc_qualifies:
+                                docker_service_data['service_checks']['layer4'].append(hc_entry)
 
 
     # to json
@@ -522,6 +561,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--tags', nargs='+', default=["health"])
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-f', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', help="Regex filter to limit which FQDNs checks actually get computed within --layers being checked")
 
     args = parser.parse_args()
 
@@ -530,4 +570,4 @@ if __name__ == '__main__':
                         filename=args.log_file,filemode='w')
     logging.Formatter.converter = time.gmtime
 
-    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags)
+    generate(args.input_filename,args.swarm_info_repo_root,args.service_state_repo_root,args.output_filename,args.layers,args.tags,args.fqdn_filter)

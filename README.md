@@ -140,6 +140,7 @@ Options:
 * `--service-state-repo-root`: dir that anywhere in its subdirectories contains `service-state.yml` files that contain the information as described in the `service-state.yml` files section
 * `--layers`: layers to generate actual checks for in the output database (default all)
 * `--tags`: only for service checks w/ given tags (default any)
+* `--fqdn-filter`: regex string to limit urls that get computed for checks within specified layers
 * `--input-filename`: path where the JSON output of `swarmstatedb.py` is
 * `--output-filename`: path where the JSON output will be written
 * `--log-file`: path to log file, otherwise STDOUT
@@ -301,6 +302,7 @@ Options:
 * `--job-name`: optional arbitrary job name
 * `--layers`: layers to actually invoke checks for (default all)
 * `--tags`: only execute service checks w/ given tags (default any)
+* `--fqdn-filter`: regex string to limit urls that get executed for checks within specified layers
 * `--threads`: default 30, number of threads for checks, adjust if DOSing yourself
 * `--input-filename`: path where the JSON output of `servicechecksdb.py` is
 * `--output-filename`: path where the JSON results will be written
@@ -504,6 +506,7 @@ Options:
 * `--stdout-servicechecker-result`: print servicechecker raw results to STDOUT in addition to disk
 * `--log-stdout`: will log to STDOUT, if not present will log within `--output-dir`
 * `--log-level`: python log level (DEBUG, WARN ... etc)
+* `--fqdn-filter`: regex string to limit urls that get computed for checks within specified layers
 * `--daemon`: Run as a long lived process, re-analyzing per interval settings
 * `--daemon-interval-seconds`: When in daemon mode, how long to sleep between runs, default 300
 * `--daemon-interval-randomize`: When in daemon mode, if enabled, will randomize the sleep between --daemon-interval-seconds and (--daemon-interval-seconds X 2)

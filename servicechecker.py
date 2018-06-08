@@ -339,7 +339,7 @@ def execServiceCheck(service_record_and_health_check):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,stdout_result):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,stdout_result,fqdn_filter):
 
     layers_to_process = [0,1,2,3,4]
     if layers_to_process_str is not None:
@@ -444,14 +444,30 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_id,
             skipped_service_checks = []
             executable_service_checks = [] # note this is array of dicts
 
-            hc_executable = True
+            fqdn_re_filter = None
+            if fqdn_filter:
+                fqdn_re_filter = re.compile(fqdn_filter,re.M|re.I)
+
             for hc in service_record['service_checks'][layer]:
+
+                hc_executable = True
+                no_match_reason = None
+
+                # check against tags?
                 if tags and len(tags) > 0:
                     if 'tags' in hc and hc['tags'] is not None:
                         if not listContainsTokenIn(tags,hc['tags']):
                             hc_executable = False
+                            no_match_reason = "tags"
                     else:
                         hc_executable = False
+                        no_match_reason = "tags"
+
+                # check against fqdn filter?
+                if fqdn_re_filter:
+                    if not fqdn_re_filter.match(hc['url']):
+                        hc_executable = False
+                        no_match_reason = "fqdn_re_filter"
 
                 if hc_executable:
                     executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries})
@@ -460,7 +476,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_id,
                                       "ms":0,
                                       "attempts":0,
                                       "skipped":True,
-                                      "msg":"does not match tags"}
+                                      "msg":"does not match " + str(no_match_reason)}
                     skipped_service_checks.append(hc)
 
             # ok here we dump all the service check records
@@ -657,7 +673,8 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
-    parser.add_argument('-z', '--stdout-result', action='store_true', default="print results to STDOUT in addition to output-filename on disk")
+    parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
+    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', help="Regex filter to limit which FQDNs actually get checked across any --layers being checked")
 
     args = parser.parse_args()
 
@@ -668,4 +685,4 @@ if __name__ == '__main__':
 
     max_retries = int(args.max_retries)
 
-    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags,args.stdout_result)
+    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags,args.stdout_result,args.fqdn_filter)
