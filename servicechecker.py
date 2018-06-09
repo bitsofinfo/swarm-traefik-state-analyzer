@@ -341,321 +341,341 @@ def execServiceCheck(service_record_and_health_check):
 # Does the bulk of the work
 def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,stdout_result,fqdn_filter):
 
-    layers_to_process = [0,1,2,3,4]
-    if layers_to_process_str is not None:
-        layers_to_process = list(map(int, layers_to_process_str))
+    # thread pool to exec tasks
+    exec_pool = None
 
-    if tags is None:
-        tags = []
+    try:
+        layers_to_process = [0,1,2,3,4]
+        if layers_to_process_str is not None:
+            layers_to_process = list(map(int, layers_to_process_str))
 
-    # seed max retries override
-    max_retries = int(maximum_retries)
+        if tags is None:
+            tags = []
 
-    # mthreaded...
-    if (isinstance(threads,str)):
-        threads = int(threads)
-    exec_pool = Pool(threads)
+        # seed max retries override
+        max_retries = int(maximum_retries)
 
-    # instantiate the client
-    logging.debug("Reading layer check db from: " + input_filename)
+        # mthreaded...
+        if (isinstance(threads,str)):
+            threads = int(threads)
 
-    # where we will store our results
-    global_results_db = {'id':job_id,
-                         'name':job_name,
-                         'tags':tags,
-                         'metrics': {'health_rating':0,
-                                   'total_fail':0,
-                                   'total_ok':0,
-                                   'total_skipped_no_replicas':0,
-                                   'avg_resp_time_ms': 0,
-                                   'total_req_time_ms': 0,
-                                   'retry_percentage':0,
-                                   'fail_percentage':0,
-                                   'total_attempts': 0,
-                                   'total_skipped': 0,
-                                   'failed_attempt_stats' : {},
-                                   'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
-                                   'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
-                                   'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
-                                   'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
-                                   'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
-                                 },
-                          'service_results': []
-                          }
+        # init pool
+        exec_pool = Pool(threads)
 
-    global_metrics = global_results_db['metrics']
+        # instantiate the client
+        logging.debug("Reading layer check db from: " + input_filename)
 
-    # open layer check database
-    layer_check_db = []
-    with open(input_filename) as f:
-        layer_check_db = json.load(f)
+        # where we will store our results
+        global_results_db = {'id':job_id,
+                             'name':job_name,
+                             'tags':tags,
+                             'metrics': {'health_rating':0,
+                                       'total_fail':0,
+                                       'total_ok':0,
+                                       'total_skipped_no_replicas':0,
+                                       'avg_resp_time_ms': 0,
+                                       'total_req_time_ms': 0,
+                                       'retry_percentage':0,
+                                       'fail_percentage':0,
+                                       'total_attempts': 0,
+                                       'total_skipped': 0,
+                                       'failed_attempt_stats' : {},
+                                       'layer0':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                       'layer1':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                       'layer2':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                       'layer3':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                       'layer4':{'health_rating':0, 'total_ok':0, 'total_fail':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_skipped': 0, 'failures':{}, 'failed_attempt_stats' : {}},
+                                     },
+                              'service_results': []
+                              }
 
-    # process it all
-    for service_record in layer_check_db:
+        global_metrics = global_results_db['metrics']
 
-        # our result object
-        service_results_db = {'name': service_record['name'],
-                                'success': True,
-                                'msg': None,
-                                'metrics': { 'health_rating':0,
-                                             'total_ok':0,
-                                             'total_fail':0,
-                                             'avg_resp_time_ms' :0,
-                                             'total_req_time_ms': 0,
-                                             'retry_percentage':0,
-                                             'fail_percentage':0,
-                                             'total_attempts': 0,
-                                             'total_skipped': 0,
-                                             'failed_attempt_stats' : {},
-                                             'layer0': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
-                                             'layer1': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
-                                             'layer2': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
-                                             'layer3': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
-                                             'layer4': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}} },
-                                'service_record' : service_record}
+        # open layer check database
+        layer_check_db = []
+        with open(input_filename) as f:
+            layer_check_db = json.load(f)
 
-        global_results_db['service_results'].append(service_results_db)
+        # process it all
+        for service_record in layer_check_db:
 
-        service_metrics = service_results_db['metrics']
+            # our result object
+            service_results_db = {'name': service_record['name'],
+                                    'success': True,
+                                    'msg': None,
+                                    'metrics': { 'health_rating':0,
+                                                 'total_ok':0,
+                                                 'total_fail':0,
+                                                 'avg_resp_time_ms' :0,
+                                                 'total_req_time_ms': 0,
+                                                 'retry_percentage':0,
+                                                 'fail_percentage':0,
+                                                 'total_attempts': 0,
+                                                 'total_skipped': 0,
+                                                 'failed_attempt_stats' : {},
+                                                 'layer0': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                                 'layer1': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                                 'layer2': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                                 'layer3': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}},
+                                                 'layer4': {'health_rating':0, 'avg_resp_time_ms': 0, 'total_fail':0, 'total_ok':0, 'retry_percentage':0, 'fail_percentage':0, 'total_attempts': 0, 'total_req_time_ms':0, 'failed_attempt_stats' : {}} },
+                                    'service_record' : service_record}
 
-        # no replicas? skip
-        if service_record['replicas'] == 0:
-            global_metrics['total_skipped_no_replicas'] += 1
-            service_results_db['success'] = True
-            service_results_db['msg'] = "nothing to do: replicas = 0"
-            continue
+            global_results_db['service_results'].append(service_results_db)
 
+            service_metrics = service_results_db['metrics']
 
-
-        # we have replicas and lets do some checks
-        for layer in service_record['service_checks']:
-
-            skip_layer = True
-            for l in layers_to_process:
-                if str(l) in layer:
-                    skip_layer = False
-                    break
-
-            # if skipping
-            if skip_layer:
+            # no replicas? skip
+            if service_record['replicas'] == 0:
+                global_metrics['total_skipped_no_replicas'] += 1
+                service_results_db['success'] = True
+                service_results_db['msg'] = "nothing to do: replicas = 0"
                 continue
 
-            # tag relevant?
-            skipped_service_checks = []
-            executable_service_checks = [] # note this is array of dicts
 
-            fqdn_re_filter = None
-            if fqdn_filter:
-                fqdn_re_filter = re.compile(fqdn_filter,re.M|re.I)
 
-            for hc in service_record['service_checks'][layer]:
+            # we have replicas and lets do some checks
+            for layer in service_record['service_checks']:
 
-                hc_executable = True
-                no_match_reason = None
+                skip_layer = True
+                for l in layers_to_process:
+                    if str(l) in layer:
+                        skip_layer = False
+                        break
 
-                # check against tags?
-                if tags and len(tags) > 0:
-                    if 'tags' in hc and hc['tags'] is not None:
-                        if not listContainsTokenIn(tags,hc['tags']):
-                            hc_executable = False
-                            no_match_reason = "tags"
-                    else:
-                        hc_executable = False
-                        no_match_reason = "tags"
-
-                # check against fqdn filter?
-                if fqdn_re_filter:
-                    if not fqdn_re_filter.match(hc['url']):
-                        hc_executable = False
-                        no_match_reason = "fqdn_re_filter"
-
-                if hc_executable:
-                    executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries})
-                else:
-                    hc['result'] = { "success":True,
-                                      "ms":0,
-                                      "attempts":0,
-                                      "skipped":True,
-                                      "msg":"does not match " + str(no_match_reason)}
-                    skipped_service_checks.append(hc)
-
-            # ok here we dump all the service check records
-            # to be executed concurrently in the pool
-            # which returns a copy...
-            executable_service_checks = exec_pool.map(execServiceCheck,executable_service_checks)
-
-            # and we now replace it w/ the result which is now decorated with results
-            service_record['service_checks'][layer] = []
-            for item in executable_service_checks:
-                service_record['service_checks'][layer].append(item['health_check'])
-
-            # +... the ones we skipped...
-            service_record['service_checks'][layer].extend(skipped_service_checks)
-
-            # process each result record updating counters
-            for service_check_record in service_record['service_checks'][layer]:
-
-                # get the individual result
-                check_result = service_check_record['result']
-
-                # total attempts
-                total_attempts = check_result['attempts']
-                total_ms = check_result['ms']
-
-                # update the total attempst in global metrics
-                global_metrics['total_attempts'] += total_attempts
-                global_metrics[layer]['total_attempts'] += total_attempts
-
-                if 'skipped' in check_result and check_result['skipped']:
-                    # update the total skipped in global/service metrics
-                    global_metrics['total_skipped'] += 1
-                    global_metrics[layer]['total_skipped'] += 1
-                    service_metrics['total_skipped'] += 1
+                # if skipping
+                if skip_layer:
                     continue
 
-                # service metrics across all layers
-                service_metrics['total_attempts'] += total_attempts
-                service_metrics['total_req_time_ms'] += total_ms
+                # tag relevant?
+                skipped_service_checks = []
+                executable_service_checks = [] # note this is array of dicts
 
-                # service metrics for this layer
-                service_metrics[layer]['total_attempts'] += total_attempts
-                service_metrics[layer]['total_req_time_ms'] += total_ms
+                fqdn_re_filter = None
+                if fqdn_filter:
+                    fqdn_re_filter = re.compile(fqdn_filter,re.M|re.I)
 
-                # bump stats for all attempt information
-                # this is relevant regardless of success/fail
-                if 'attempts_failed' in check_result:
-                    for attempt_error in check_result['attempts_failed']:
-                        failure_reason = ""
-                        if 'code' in attempt_error:
-                            failure_reason = str(attempt_error['code'])
-                        if 'error' in attempt_error:
-                            failure_reason += " - " + attempt_error['error']
+                for hc in service_record['service_checks'][layer]:
 
-                        if len(failure_reason) > 0:
-                            metrics_2_update = [service_metrics,service_metrics[layer],global_metrics,global_metrics[layer]]
-                            for metric_2_update in metrics_2_update:
-                                failed_attempt_stats = metric_2_update['failed_attempt_stats']
-                                healthcheck_url = service_check_record['url']
+                    hc_executable = True
+                    no_match_reason = None
 
-                                if healthcheck_url not in failed_attempt_stats:
-                                    failed_attempt_stats[healthcheck_url] = {}
+                    # check against tags?
+                    if tags and len(tags) > 0:
+                        if 'tags' in hc and hc['tags'] is not None:
+                            if not listContainsTokenIn(tags,hc['tags']):
+                                hc_executable = False
+                                no_match_reason = "tags"
+                        else:
+                            hc_executable = False
+                            no_match_reason = "tags"
 
-                                url_stats = failed_attempt_stats[healthcheck_url]
-                                if failure_reason not in url_stats:
-                                    url_stats[failure_reason] = 0
-                                url_stats[failure_reason] += 1
+                    # check against fqdn filter?
+                    if fqdn_re_filter:
+                        if not fqdn_re_filter.match(hc['url']):
+                            hc_executable = False
+                            no_match_reason = "fqdn_re_filter"
 
-                # handle failure...
-                if not check_result['success']:
-
-                    service_results_db["success"] = False
-
-                    # service metrics bump
-                    service_metrics["total_fail"] += 1
-                    service_metrics[layer]['total_fail'] += 1
-
-                    # global failures bump
-                    global_metrics['total_fail'] += 1
-                    global_metrics[layer]['total_fail'] += 1
-
-                    # manage map in global_metrics of failures per layer
-                    # that are keyed by docker-service-name[reason]{count,curls}
-                    if service_record['name'] in global_metrics[layer]['failures']:
-                        service_failure_summary = global_metrics[layer]['failures'][service_record['name']]
+                    if hc_executable:
+                        executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries})
                     else:
-                        service_failure_summary = {}
-                        global_metrics[layer]['failures'][service_record['name']] = service_failure_summary;
+                        hc['result'] = { "success":True,
+                                          "ms":0,
+                                          "attempts":0,
+                                          "skipped":True,
+                                          "msg":"does not match " + str(no_match_reason)}
+                        skipped_service_checks.append(hc)
 
-                    # Create record for service_failure_summary
-                    # for failures based on code/error key w/ count
-                    error_result_key = None
-                    if 'code' in check_result:
-                        error_result_key = str(check_result['code'])
+                # ok here we dump all the service check records
+                # to be executed concurrently in the pool
+                # which returns a copy...
+                executable_service_checks = exec_pool.map(execServiceCheck,executable_service_checks)
 
-                    if 'error' in check_result:
-                        prefix = ""
-                        if error_result_key is not None:
-                            prefix = error_result_key + " - "
+                # and we now replace it w/ the result which is now decorated with results
+                service_record['service_checks'][layer] = []
+                for item in executable_service_checks:
+                    service_record['service_checks'][layer].append(item['health_check'])
 
-                        error_result_key = prefix+check_result['error']
+                # +... the ones we skipped...
+                service_record['service_checks'][layer].extend(skipped_service_checks)
 
-                    if error_result_key not in service_failure_summary:
-                        service_failure_summary[error_result_key] = {'total':0, 'curls':[]}
-                    service_failure_summary[error_result_key]['total'] += 1
+                # process each result record updating counters
+                for service_check_record in service_record['service_checks'][layer]:
 
-                    # add curls if to the reason keyed under each service
-                    if 'curl' in service_check_record:
-                        if service_check_record['curl'] not in service_failure_summary[error_result_key]['curls']:
-                            service_failure_summary[error_result_key]['curls'].append(service_check_record['curl'])
+                    # get the individual result
+                    check_result = service_check_record['result']
 
-                # check result is OK!
+                    # total attempts
+                    total_attempts = check_result['attempts']
+                    total_ms = check_result['ms']
+
+                    # update the total attempst in global metrics
+                    global_metrics['total_attempts'] += total_attempts
+                    global_metrics[layer]['total_attempts'] += total_attempts
+
+                    if 'skipped' in check_result and check_result['skipped']:
+                        # update the total skipped in global/service metrics
+                        global_metrics['total_skipped'] += 1
+                        global_metrics[layer]['total_skipped'] += 1
+                        service_metrics['total_skipped'] += 1
+                        continue
+
+                    # service metrics across all layers
+                    service_metrics['total_attempts'] += total_attempts
+                    service_metrics['total_req_time_ms'] += total_ms
+
+                    # service metrics for this layer
+                    service_metrics[layer]['total_attempts'] += total_attempts
+                    service_metrics[layer]['total_req_time_ms'] += total_ms
+
+                    # bump stats for all attempt information
+                    # this is relevant regardless of success/fail
+                    if 'attempts_failed' in check_result:
+                        for attempt_error in check_result['attempts_failed']:
+                            failure_reason = ""
+                            if 'code' in attempt_error:
+                                failure_reason = str(attempt_error['code'])
+                            if 'error' in attempt_error:
+                                failure_reason += " - " + attempt_error['error']
+
+                            if len(failure_reason) > 0:
+                                metrics_2_update = [service_metrics,service_metrics[layer],global_metrics,global_metrics[layer]]
+                                for metric_2_update in metrics_2_update:
+                                    failed_attempt_stats = metric_2_update['failed_attempt_stats']
+                                    healthcheck_url = service_check_record['url']
+
+                                    if healthcheck_url not in failed_attempt_stats:
+                                        failed_attempt_stats[healthcheck_url] = {}
+
+                                    url_stats = failed_attempt_stats[healthcheck_url]
+                                    if failure_reason not in url_stats:
+                                        url_stats[failure_reason] = 0
+                                    url_stats[failure_reason] += 1
+
+                    # handle failure...
+                    if not check_result['success']:
+
+                        service_results_db["success"] = False
+
+                        # service metrics bump
+                        service_metrics["total_fail"] += 1
+                        service_metrics[layer]['total_fail'] += 1
+
+                        # global failures bump
+                        global_metrics['total_fail'] += 1
+                        global_metrics[layer]['total_fail'] += 1
+
+                        # manage map in global_metrics of failures per layer
+                        # that are keyed by docker-service-name[reason]{count,curls}
+                        if service_record['name'] in global_metrics[layer]['failures']:
+                            service_failure_summary = global_metrics[layer]['failures'][service_record['name']]
+                        else:
+                            service_failure_summary = {}
+                            global_metrics[layer]['failures'][service_record['name']] = service_failure_summary;
+
+                        # Create record for service_failure_summary
+                        # for failures based on code/error key w/ count
+                        error_result_key = None
+                        if 'code' in check_result:
+                            error_result_key = str(check_result['code'])
+
+                        if 'error' in check_result:
+                            prefix = ""
+                            if error_result_key is not None:
+                                prefix = error_result_key + " - "
+
+                            error_result_key = prefix+check_result['error']
+
+                        if error_result_key not in service_failure_summary:
+                            service_failure_summary[error_result_key] = {'total':0, 'curls':[]}
+                        service_failure_summary[error_result_key]['total'] += 1
+
+                        # add curls if to the reason keyed under each service
+                        if 'curl' in service_check_record:
+                            if service_check_record['curl'] not in service_failure_summary[error_result_key]['curls']:
+                                service_failure_summary[error_result_key]['curls'].append(service_check_record['curl'])
+
+                    # check result is OK!
+                    else:
+                        service_results_db['metrics'][layer]['total_ok'] += 1
+                        service_results_db['metrics']['total_ok'] += 1
+                        global_metrics[layer]['total_ok'] += 1
+                        global_metrics['total_ok'] += 1
+
+                # end loop of layer specific checks
+                if len(executable_service_checks) > 0:
+                    layer_total_fail = service_metrics[layer]['total_fail'];
+                    layer_total_ok = service_metrics[layer]['total_ok'];
+                    layer_total_attempts = service_metrics[layer]['total_attempts'];
+
+                    global_layer_total_ok = global_metrics[layer]['total_ok']
+                    global_layer_total_fail = global_metrics[layer]['total_fail']
+
+                    service_metrics[layer]['avg_resp_time_ms'] = service_metrics[layer]['total_req_time_ms'] / len(executable_service_checks)
+                    service_metrics[layer]['health_rating'] = calcHealthRating(layer_total_fail,layer_total_ok)
+                    service_metrics[layer]['retry_percentage'] = calcRetryPercentage(layer_total_attempts,layer_total_fail,layer_total_ok)
+                    service_metrics[layer]['fail_percentage'] = calcFailPercentage(layer_total_fail,layer_total_ok)
+                    global_metrics[layer]['health_rating'] = calcHealthRating(global_layer_total_fail,global_layer_total_ok)
+                    global_metrics[layer]['retry_percentage'] = calcRetryPercentage(global_metrics[layer]['total_attempts'],global_layer_total_fail,global_layer_total_ok)
+                    global_metrics[layer]['fail_percentage'] = calcFailPercentage(global_layer_total_fail,global_layer_total_ok)
+
+            # end loop over all layers
+            service_total_processed = (service_metrics['total_fail']+service_metrics['total_ok'])
+            if service_total_processed > 0:
+                service_metrics['avg_resp_time_ms'] = service_metrics['total_req_time_ms'] / service_total_processed
+            service_metrics['health_rating'] = calcHealthRating(service_metrics['total_fail'],service_metrics['total_ok'])
+            service_metrics['retry_percentage'] = calcRetryPercentage(service_metrics['total_attempts'],service_metrics['total_fail'],service_metrics['total_ok'])
+            service_metrics['fail_percentage'] = calcFailPercentage(service_metrics['total_fail'],service_metrics['total_ok'])
+
+
+            # overall global metrics
+            global_total_ok = global_metrics['total_ok']
+            global_total_fail = global_metrics['total_fail']
+            global_total = (global_total_ok + global_total_fail)
+            global_metrics['total_req_time_ms'] += service_metrics['total_req_time_ms']
+
+            if global_total > 0 and global_metrics['total_req_time_ms'] > 0:
+                global_metrics['avg_resp_time_ms'] = global_metrics['total_req_time_ms'] / global_total
+
+            global_metrics['health_rating'] = calcHealthRating(global_total_fail,global_total_ok)
+            global_metrics['retry_percentage'] = calcRetryPercentage(global_metrics['total_attempts'],global_total_fail,global_total_ok)
+            global_metrics['fail_percentage'] = calcFailPercentage(global_total_fail,global_total_ok)
+
+
+        # to json
+        if output_filename is not None:
+            with open(output_filename, 'w') as outfile:
+                if output_format == 'json':
+                    json.dump(global_results_db, outfile, indent=4)
                 else:
-                    service_results_db['metrics'][layer]['total_ok'] += 1
-                    service_results_db['metrics']['total_ok'] += 1
-                    global_metrics[layer]['total_ok'] += 1
-                    global_metrics['total_ok'] += 1
+                    yaml.dump(global_results_db, outfile, default_flow_style=False)
 
-            # end loop of layer specific checks
-            if len(executable_service_checks) > 0:
-                layer_total_fail = service_metrics[layer]['total_fail'];
-                layer_total_ok = service_metrics[layer]['total_ok'];
-                layer_total_attempts = service_metrics[layer]['total_attempts'];
-
-                global_layer_total_ok = global_metrics[layer]['total_ok']
-                global_layer_total_fail = global_metrics[layer]['total_fail']
-
-                service_metrics[layer]['avg_resp_time_ms'] = service_metrics[layer]['total_req_time_ms'] / len(executable_service_checks)
-                service_metrics[layer]['health_rating'] = calcHealthRating(layer_total_fail,layer_total_ok)
-                service_metrics[layer]['retry_percentage'] = calcRetryPercentage(layer_total_attempts,layer_total_fail,layer_total_ok)
-                service_metrics[layer]['fail_percentage'] = calcFailPercentage(layer_total_fail,layer_total_ok)
-                global_metrics[layer]['health_rating'] = calcHealthRating(global_layer_total_fail,global_layer_total_ok)
-                global_metrics[layer]['retry_percentage'] = calcRetryPercentage(global_metrics[layer]['total_attempts'],global_layer_total_fail,global_layer_total_ok)
-                global_metrics[layer]['fail_percentage'] = calcFailPercentage(global_layer_total_fail,global_layer_total_ok)
-
-        # end loop over all layers
-        service_total_processed = (service_metrics['total_fail']+service_metrics['total_ok'])
-        if service_total_processed > 0:
-            service_metrics['avg_resp_time_ms'] = service_metrics['total_req_time_ms'] / service_total_processed
-        service_metrics['health_rating'] = calcHealthRating(service_metrics['total_fail'],service_metrics['total_ok'])
-        service_metrics['retry_percentage'] = calcRetryPercentage(service_metrics['total_attempts'],service_metrics['total_fail'],service_metrics['total_ok'])
-        service_metrics['fail_percentage'] = calcFailPercentage(service_metrics['total_fail'],service_metrics['total_ok'])
+                logging.debug("Output written to: " + output_filename)
 
 
-        # overall global metrics
-        global_total_ok = global_metrics['total_ok']
-        global_total_fail = global_metrics['total_fail']
-        global_total = (global_total_ok + global_total_fail)
-        global_metrics['total_req_time_ms'] += service_metrics['total_req_time_ms']
-
-        if global_total > 0 and global_metrics['total_req_time_ms'] > 0:
-            global_metrics['avg_resp_time_ms'] = global_metrics['total_req_time_ms'] / global_total
-
-        global_metrics['health_rating'] = calcHealthRating(global_total_fail,global_total_ok)
-        global_metrics['retry_percentage'] = calcRetryPercentage(global_metrics['total_attempts'],global_total_fail,global_total_ok)
-        global_metrics['fail_percentage'] = calcFailPercentage(global_total_fail,global_total_ok)
-
-
-    # to json
-    if output_filename is not None:
-        with open(output_filename, 'w') as outfile:
+        # also to stdout?
+        if stdout_result:
+            print()
             if output_format == 'json':
-                json.dump(global_results_db, outfile, indent=4)
+                print(json.dumps(global_results_db,indent=4))
             else:
                 yaml.dump(global_results_db, outfile, default_flow_style=False)
 
-            logging.debug("Output written to: " + output_filename)
-
-
-    # also to stdout?
-    if stdout_result:
         print()
-        if output_format == 'json':
-            print(json.dumps(global_results_db,indent=4))
-        else:
-            yaml.dump(global_results_db, outfile, default_flow_style=False)
 
-    print()
 
+    # end main wrapping try
+    except Exception as e:
+        logging.exception("Error in servicechecker.execute()")
+
+    finally:
+        try:
+            if exec_pool is not None:
+                exec_pool.close()
+                exec_pool.terminate()
+                exec_pool = None
+                logging.debug("Pool closed and terminated")
+        except:
+            logging.exception("Error terminating, closing pool")
 
 ###########################
 # Main program
