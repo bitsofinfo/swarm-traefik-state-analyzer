@@ -323,6 +323,10 @@ class STSACollector(object):
                     error_short_key = "remote_cut_conn"
                 elif 'Connection refused' in attempt_error:
                     error_short_key = "conn_refused"
+                elif 'Connection reset by peer' in attempt_error:
+                    error_short_key = "conn_reset_peer"
+                elif 'Host is unreachable' in attempt_error:
+                    error_short_key = "host_unreach"
                 else:
                     # convert any messages w/ a status code into code only
                     for s in list(HTTPStatus):
