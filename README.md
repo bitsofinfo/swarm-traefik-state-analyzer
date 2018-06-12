@@ -618,7 +618,7 @@ This dashboard is where several core health percentage and latency based alerts 
 :-------------------------:|:-------------------------:
 ![](docs/grafana_overall_status.png)|![](docs/grafana_service_inspector.png)
 |Global Alerts|Layer Inspector|
-![](docs/grafana_layer_inspector.png)|![](docs/grafana_global_alerts.png)
+![](docs/grafana_global_alerts.png)|![](docs/grafana_layer_inspector.png)
 |Error Inspector||
 ![](docs/grafana_error_inspector.png)||
 
