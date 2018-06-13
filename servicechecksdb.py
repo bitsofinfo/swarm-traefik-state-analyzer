@@ -414,7 +414,7 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                     tmp_version_nums_2_tags = {}
                     for version_tag in context['versions']:
                         version_number = context['versions'][version_tag]
-                        if version_number not in tmp_version_nums_2_tag:
+                        if version_number not in tmp_version_nums_2_tags:
                             tmp_version_nums_2_tags[version_number] = []
                         tmp_version_nums_2_tags[version_number].append(version_tag)
 
