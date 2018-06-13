@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser.add_argument('-g', '--tags', nargs='+', default=["health"])
     parser.add_argument('-a', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs are included in service checks for all --layers being checked")
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
+    parser.add_argument('-S', '--sleep-seconds', dest='sleep_seconds', default=0, help="The max amount of time to sleep between all attempts for each service check; if > 0, the actual sleep will be a random time from 0 to this value")
     parser.add_argument('-r', '--max-retries', dest='max_retries', default=3, help="maximum retries per check, overrides service-state service check configs")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-e', '--log-stdout', action='store_true', help="Log to STDOUT, if not present will create logfile under --output-dir")
@@ -126,7 +127,7 @@ if __name__ == '__main__':
             logging.info("Invoking servicechecker.execute().....")
             servicecheckerdb_file = path_prefix+"03_servicecheckerdb.json"
             servicechecker.max_retries = args.max_retries
-            servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_id,job_name,args.layers,args.threads,args.tags,args.stdout_servicechecker_result,args.fqdn_filter)
+            servicechecker.execute(servicechecksdb_file,servicecheckerdb_file,"json",args.max_retries,job_id,job_name,args.layers,args.threads,args.tags,args.stdout_servicechecker_result,args.fqdn_filter,args.sleep_seconds)
 
             # make the report
             logging.info("Invoking servicecheckerreport.execute().....")

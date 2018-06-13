@@ -305,6 +305,7 @@ Options:
 * `--tags`: only execute service checks w/ given tags (default any)
 * `--fqdn-filter`: regex string to limit urls that get executed for checks within specified layers
 * `--threads`: default 30, number of threads for checks, adjust if DOSing yourself
+* `--sleep-seconds`: The max amount of time to sleep between all attempts for each service check; if > 0, the actual sleep will be a random time from 0 to this value
 * `--input-filename`: path where the JSON output of `servicechecksdb.py` is
 * `--output-filename`: path where the JSON results will be written
 * `--log-file`: path to log file, otherwise STDOUT
@@ -508,6 +509,7 @@ Options:
 * `--log-stdout`: will log to STDOUT, if not present will log within `--output-dir`
 * `--log-level`: python log level (DEBUG, WARN ... etc)
 * `--fqdn-filter`: regex string to limit urls that get computed for checks within specified layers
+* `--sleep-seconds`: The max amount of time to sleep between all attempts for each service check; if > 0, the actual sleep will be a random time from 0 to this value
 * `--daemon`: Run as a long lived process, re-analyzing per interval settings
 * `--daemon-interval-seconds`: When in daemon mode, how long to sleep between runs, default 300
 * `--daemon-interval-randomize`: When in daemon mode, if enabled, will randomize the sleep between --daemon-interval-seconds and (--daemon-interval-seconds X 2)

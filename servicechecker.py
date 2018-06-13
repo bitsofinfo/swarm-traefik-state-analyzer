@@ -2,6 +2,7 @@
 
 __author__ = "bitsofinfo"
 
+import random
 import json
 import pprint
 import re
@@ -198,6 +199,7 @@ def execServiceCheck(service_record_and_health_check):
 
     hc = service_record_and_health_check['health_check']
     service_record = service_record_and_health_check['service_record']
+    sleep_seconds = int(service_record_and_health_check['sleep_seconds'])
 
     hc['result'] = { "success":False }
 
@@ -334,12 +336,17 @@ def execServiceCheck(service_record_and_health_check):
             hc['result']['distinct_failure_codes'] = distinct_failure_codes
             hc['result']['distinct_failure_errors'] = distinct_failure_errors
 
+        # finally, sleep after every attempt IF configured to do so...
+        finally:
+            if sleep_seconds > 0:
+                tmp_sleep = random.randint(0,sleep_seconds)
+                time.sleep(int(tmp_sleep))
 
     return service_record_and_health_check
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,stdout_result,fqdn_filter):
+def execute(input_filename,output_filename,output_format,maximum_retries,job_id,job_name,layers_to_process_str,threads,tags,stdout_result,fqdn_filter,sleep_seconds):
 
     # thread pool to exec tasks
     exec_pool = None
@@ -476,7 +483,7 @@ def execute(input_filename,output_filename,output_format,maximum_retries,job_id,
                             no_match_reason = "fqdn_re_filter"
 
                     if hc_executable:
-                        executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries})
+                        executable_service_checks.append({'service_record':service_record,'health_check':hc,'max_retries':max_retries,'sleep_seconds':sleep_seconds})
                     else:
                         hc['result'] = { "success":True,
                                           "ms":0,
@@ -691,6 +698,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--layers', nargs='+')
     parser.add_argument('-g', '--tags', nargs='+')
     parser.add_argument('-t', '--threads', dest='threads', default=30, help="max threads for processing checks, default 30, higher = faster completion, adjust as necessary to avoid DOSing...")
+    parser.add_argument('-S', '--sleep-seconds', dest='sleep_seconds', default=0, help="The max amount of time to sleep between all attempts for each service check; if > 0, the actual sleep will be a random time from 0 to this value")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
@@ -705,4 +713,4 @@ if __name__ == '__main__':
 
     max_retries = int(args.max_retries)
 
-    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags,args.stdout_result,args.fqdn_filter)
+    execute(args.input_filename,args.output_filename,args.output_format,max_retries,args.job_id,args.job_name,args.layers,args.threads,args.tags,args.stdout_result,args.fqdn_filter,args.sleep_seconds)
