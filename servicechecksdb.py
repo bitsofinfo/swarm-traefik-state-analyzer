@@ -426,8 +426,8 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                     for version_number in sorted(tmp_version_nums_2_tags, key=len, reverse=True):
                         if version_number != '':
                             if version_number.replace(".","-") in docker_service_name:
-                                tags = tmp_version_nums_2_tags[version_number]
-                                docker_service_data['context']['tags'].extend(tags)
+                                tmp_tags = tmp_version_nums_2_tags[version_number]
+                                docker_service_data['context']['tags'].extend(tmp_tags)
                                 docker_service_data['context']['version'] = version_number
                                 break; # first match wins
 
