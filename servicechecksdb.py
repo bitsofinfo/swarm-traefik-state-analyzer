@@ -407,12 +407,29 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                 context = service_state['contexts'][context_name]
                 if context_name in docker_service_name:
                     docker_service_data['context']['name'] = context_name
+
+                    # build a list of all version numbers -> [tags] in this context
+                    # should only be one version unique across all tags
+                    # but due to mis-config could always be possible
+                    tmp_version_nums_2_tags = {}
                     for version_tag in context['versions']:
                         version_number = context['versions'][version_tag]
+                        if version_number not in tmp_version_nums_2_tag:
+                            tmp_version_nums_2_tags[version_number] = []
+                        tmp_version_nums_2_tags[version_number].append(version_tag)
+
+                    # now lets sort the version_numbers where the longest
+                    # one is first... why? becuase we are going to do a contains
+                    # check for the version name in the docker_service_name and since
+                    # version numbers can be subsets of longer version numbers we
+                    # want to ensure we start w/ the longest one first
+                    for version_number in sorted(tmp_version_nums_2_tags, key=len, reverse=True):
                         if version_number != '':
                             if version_number.replace(".","-") in docker_service_name:
-                                docker_service_data['context']['tags'].append(version_tag)
+                                tags = tmp_version_nums_2_tags[version_number]
+                                docker_service_data['context']['tags'].extend(tags)
                                 docker_service_data['context']['version'] = version_number
+                                break; # first match wins
 
 
         # log a warning
