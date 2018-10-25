@@ -474,6 +474,11 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                                                 'layer4':[]
                                                 }
 
+        # init unique_root_uris
+        docker_service_data['unique_entrypoint_uris'] = {
+                                                    'via_direct': [],
+                                                    'via_fqdn': []
+                                                    }
 
         fqdn_re_filter = None
         if fqdn_filter:
@@ -488,8 +493,8 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
                     target_container_port = int(p.split(":")[1])
 
                     for hc in getServiceChecksForServicePort(0,target_container_port,docker_service_name,service_state,tags,docker_service_data):
-                        url = service_state['service_ports'][target_container_port]["protocol"]+"://"+host+":"+str(swarm_pub_port)
-                        hc_entry = toServiceCheckEntry(0,None,url,target_container_port,hc,docker_service_name+" swarm service port direct")
+                        root_url = service_state['service_ports'][target_container_port]["protocol"]+"://"+host+":"+str(swarm_pub_port)
+                        hc_entry = toServiceCheckEntry(0,None,root_url,target_container_port,hc,docker_service_name+" swarm service port direct")
 
                         hc_qualifies = True
                         if fqdn_re_filter:
@@ -498,6 +503,8 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
 
                         if hc_qualifies:
                             docker_service_data['service_checks']['layer0'].append(hc_entry)
+                            docker_service_data['unique_entrypoint_uris']['via_direct'].append(root_url)
+                            dedup(docker_service_data['unique_entrypoint_uris']['via_direct'])
 
 
 
@@ -534,7 +541,8 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         if 3 in layers_to_process:
             for fqdn in docker_service_data['traefik_host_labels']:
                 for hc in getServiceChecksForServiceAnyPort(3,fqdn,service_state,tags,docker_service_data):
-                    hc_entry = toServiceCheckEntry(3,None,"https://"+fqdn,None,hc,docker_service_name+" via normal fqdn access")
+                    root_url = "https://"+fqdn
+                    hc_entry = toServiceCheckEntry(3,None,root_url,None,hc,docker_service_name+" via normal fqdn access")
 
                     hc_qualifies = True
                     if fqdn_re_filter:
@@ -543,6 +551,8 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
 
                     if hc_qualifies:
                         docker_service_data['service_checks']['layer3'].append(hc_entry)
+                        docker_service_data['unique_entrypoint_uris']['via_fqdn'].append(root_url)
+                        dedup(docker_service_data['unique_entrypoint_uris']['via_fqdn'])
 
         # layer-4: these are custom and vary based on context
         # typically another proxy beyond layer3 so the root url

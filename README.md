@@ -14,6 +14,7 @@ This project is intended to aid in the analysis of Docker Swarm services that ar
 - Is the load-balancer pointing to the right Traefik backend?
 - Is something busted in front of my load-balancer?
 - Is the name/fqdn even pointing to the correct balancer or whatever is in front of that?
+- Are there issues with TLS/SSL?
 
 Ugh... well those kinds of questions is what this tool is intended to *assist* in helping to narrow down where to look next. These scripts collect relevant info from the swarm, generate all possible avenues of ingress across all layers for service checks to services on a swarm, and execute those checks giving detailed results.
 
@@ -29,6 +30,8 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
   * [servicecheckerreport.py](#servicecheckerreport)
   * [analyze-swarm-traefik-state.py](#analyze-swarm-traefik-state)
   * [servicecheckerdb2prometheus.py](#servicecheckerdb2prometheus)
+* [TLS/SSL diagnosis scripts](#tlsssltools)
+  * [testsslinputgenerator.py](#testsslinputgenerator)
 * [Grafana dashboards](#grafana)
 * [Docker](#docker)
 
@@ -591,6 +594,12 @@ sts_analyzer_g_replicas{classifier="none",context="pre_prod",docker_service_name
 sts_analyzer_g_attempt_errors{classifier="none",context="pre_prod",dns="192.168.22.177",docker_service_name="my_app_pre_prod_beta_12_1__1_app",error="timeout",formal_name="my_app",host="mydockerhost2.test.com",layer="layer1",path="/healthcheck",port="10001",swarm="myswarm9",tags="previous",url="https://mydockerhost2.test.com:45001/healthcheck",version="beta-12.1--1"} 1.0
 ...
 ```
+
+## <a id="tlsssltools"></a>TLS/SSL diagnosis scripts
+
+Another cause of issues can typically be TLS/SSL related, expired certificates, unsupported ciphers, invalid names etc. A great tool out there is [https://github.com/drwetter/testssl.sh](https://github.com/drwetter/testssl.sh) and the scripts below can be used to consume the data from the `servicechecksdb` to provide `testssh.sh` command inputs to automate TLS/SSL checking your apps via their various entrypoints (unique fqdns).
+
+1. [testsslinputgenerator.py](#testsslinputgenerator): Reads a `servicechecksdb.json` to produce a `testssl_input.txt` file that can be used to feed `testssh.sh` invocations.
 
 ## <a id="grafana"></a>Grafana dashboards
 

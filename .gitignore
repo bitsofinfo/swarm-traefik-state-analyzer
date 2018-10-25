@@ -8,6 +8,8 @@
 
 *.log
 
+*_input.txt
+
 output/
 output
 
