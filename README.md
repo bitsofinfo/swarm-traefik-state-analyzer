@@ -597,7 +597,7 @@ sts_analyzer_g_attempt_errors{classifier="none",context="pre_prod",dns="192.168.
 
 ## <a id="tlsssltools"></a>TLS/SSL diagnosis scripts
 
-Another cause of issues can typically be TLS/SSL related, expired certificates, unsupported ciphers, invalid names etc. A great tool out there is [https://github.com/drwetter/testssl.sh](https://github.com/drwetter/testssl.sh) and the scripts below can be used to consume the data from the `servicechecksdb` to provide `testssh.sh` command inputs to automate TLS/SSL checking your apps via their various entrypoints (unique fqdns).
+Another cause of issues can typically be TLS/SSL related, expired certificates, unsupported ciphers, invalid names etc. A great tool out there is [https://github.com/drwetter/testssl.sh](https://github.com/drwetter/testssl.sh) and the scripts below can be used to consume the data from the `servicechecksdb` to provide `testssl.sh` command inputs to automate TLS/SSL checking your apps via their various entrypoints (unique fqdns).
 
 1. [testsslinputgenerator.py](#testsslinputgenerator): Reads a `servicechecksdb.json` to produce a `testssl_input.txt` file that can be used to feed `testssl.sh` invocations.
 
