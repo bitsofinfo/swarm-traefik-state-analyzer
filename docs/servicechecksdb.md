@@ -8,6 +8,8 @@ Depending on the number of ports your application exposes, number of swarm nodes
 
 You can use the generated JSON file that contains all the necessary information (urls, headers, methods, payloads etc) to drive any monitoring system you'd like.... or just feed into the provided `servicechecker.py` to execute all the service checks and write a detailed report out... again in JSON.
 
+Note you an also use this file as input to [testsslinputgenerator.py](tlsssltools.md)
+
 ```bash
 ./servicechecksdb.py --input-filename [swarmstatedb output file] \
   --swarm-info-repo-root /pathto/[dir containing swarm-name.yml files] \
@@ -45,6 +47,14 @@ Decorates additional info to `swarmstatedb` output from `service-state.yml` file
       "my-alias2",
       "my-alias1"
   ],
+  "unique_entrypoint_uris": {
+      "via_direct": [
+          "https://myswarm1-node1.test.com:30001"
+      ],
+      "via_fqdn": [
+          "https://myswarm1-extlb.test.com"
+      ]
+  },
   "service_checks": {
       "layer0": [
           {

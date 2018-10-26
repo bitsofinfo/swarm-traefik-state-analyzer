@@ -14,6 +14,7 @@ Another cause of issues can typically be TLS/SSL related, expired certificates, 
   --output-filename [filename] \
   --testssl-nonfile-args [single quoted args] \
   --testssl-outputdir [relative or full path to a dir] \
+  --testssl-outputmode [dirs | files] \
   --fqdn-filter [single quoted regex] \
   --uri-bucket-filter [single quoted regex] \
   --collapse-on-fqdn-filter [single quoted regex]
