@@ -617,6 +617,7 @@ Another cause of issues can typically be TLS/SSL related, expired certificates, 
 Options:
 * `--input-filename`: name of the input file (i.e. this must be the output file of `servicecheckerdb.py`)
 * `--output-filename`: name of the file to output the `testssl.sh` commands in. This file can be used to feed `testssl.sh`
+* `--testssl-outputmode`: for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs` a unique dir structure will be created based on `swarmname/servicename/fqdn/[timestamp].[ext]`, if `files` each output file will be in the same `--testssl-outputdir` directory but named such as `swarmname__servicename__fqdn__[timestamp].[ext]`
 * `--testssl-nonfile-args`: any valid `testssl.sh` argument other than any of the `testssl.sh` output `--*file` arguments such as `--jsonfile, --csvfile` etc. Why? because this script will auto generate those for you. The defaults for this are `-S -P -p --fast`
 * `--testssl-outputdir`: for each `testssh.sh` command generated into the `--output-filename` this will be the the root output dir for all generated `testssl.sh` `--*file` arguments, default value: `testssl_output`
 * `--log-file`: path to log file, otherwise STDOUT
@@ -636,6 +637,14 @@ Produces output for `testssl.sh` to consume:
   --csvfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.csv \
   --htmlfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.html https://bitsofinfo.test.com
 ```
+
+Which could then be consumed by `testssl.sh` such as:
+
+```
+./testssl.sh -f testssl_input.txt
+```
+
+Or write your own program to parse it and spawn your own execs of `testssl.sh`
 
 ## <a id="grafana"></a>Grafana dashboards
 

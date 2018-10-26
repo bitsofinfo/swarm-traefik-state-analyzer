@@ -27,7 +27,9 @@ def dedup(list_of_objects):
 
 
 # Does the bulk of the work
-def execute(input_filename,output_filename,stdout_result,fqdn_filter,testssl_nonfile_args,testssl_outputdir,uri_bucket_filter,collapse_on_fqdn_filter):
+def execute(input_filename,output_filename,stdout_result,fqdn_filter,
+    testssl_nonfile_args,testssl_outputdir,uri_bucket_filter,
+    collapse_on_fqdn_filter,testssl_outputmode):
 
 
     try:
@@ -98,10 +100,13 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,testssl_non
                                     collapsed_fqdns_found.append(collapsed_fqdn_found)
 
                         # create a unique name for each filename, containing relevant swarm info
-                        filename = service_record["swarm_name"] + "__" +service_record["name"] + "__" + target_url.replace("https://","").replace(":","_")
-
-                        # specify a directory path to hold all testssl arg: --*file <filenames>
-                        file_arg_target_dir = testssl_outputdir + "/" + service_record["swarm_name"] + "/" +service_record["name"] + "/" + target_url.replace("https://","").replace(":","_")
+                        timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                        if testssl_outputmode == 'files':
+                            file_arg_target_dir = testssl_outputdir
+                            filename = service_record["swarm_name"] + "__" +service_record["name"] + "__" + target_url.replace("https://","").replace(":","_") + "__" + timestamp
+                        else:
+                            file_arg_target_dir = testssl_outputdir + "/" + service_record["swarm_name"] + "/" +service_record["name"] + "/" + target_url.replace("https://","").replace(":","_")
+                            filename = timestamp
 
                         # filenames for all types
                         logfilename = file_arg_target_dir+"/testssl__"+filename+".log"
@@ -141,6 +146,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="testssl_input.txt")
     parser.add_argument('-a', '--testssl-nonfile-args', dest='testssl_nonfile_args', help='any valid testssl.sh argument other than any of the "--*file" destination arguments, default "-S -P -p --fast"', default="-S -P -p --fast")
     parser.add_argument('-d', '--testssl-outputdir', dest='testssl_outputdir', help='for each command generated, the root output dir for all --*file arguments, default "testssl_output"', default="testssl_output")
+    parser.add_argument('-m', '--testssl-outputmode', dest='testssl_outputmode', help='for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs` a unique dir structure will be created based on swarmname/servicename/fqdn/[timestamp].[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as swarmname__servicename__fqdn__[timestamp].[ext]', default="files")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
@@ -155,4 +161,6 @@ if __name__ == '__main__':
                         filename=args.log_file,filemode='w')
     logging.Formatter.converter = time.gmtime
 
-    execute(args.input_filename,args.output_filename,args.stdout_result,args.fqdn_filter,args.testssl_nonfile_args,args.testssl_outputdir,args.uri_bucket_filter,args.collapse_on_fqdn_filter)
+    execute(args.input_filename,args.output_filename,args.stdout_result,
+        args.fqdn_filter,args.testssl_nonfile_args,args.testssl_outputdir,
+        args.uri_bucket_filter,args.collapse_on_fqdn_filter,args.testssl_outputmode)
