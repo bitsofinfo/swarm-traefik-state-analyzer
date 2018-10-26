@@ -158,7 +158,7 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicechecksdb.json", help="Filename of layer check check database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="testssl_cmds.txt")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="testssl_cmds")
     parser.add_argument('-M', '--output-mode', dest='output_mode', help="output a `plain` text file of one command per line or a executable `sh` script, default `sh`", default="plain")
     parser.add_argument('-D', '--testssl-dir', dest='testssl_dir', help='dir containing the `testssl.sh` script to prepend to the command, default `./`"', default="./")
     parser.add_argument('-a', '--testssl-nonfile-args', dest='testssl_nonfile_args', help='any valid testssl.sh argument other than any of the "--*file" destination arguments, default "-S -P -p --fast"', default="-S -P -p --fast")
