@@ -26,11 +26,11 @@ This dashboard is where several core health percentage and latency based alerts 
 
 |Overall Status|Service Inspector|
 :-------------------------:|:-------------------------:
-![](docs/grafana_overall_status.png)|![](docs/grafana_service_inspector.png)
+![](grafana_overall_status.png)|![](grafana_service_inspector.png)
 |Global Alerts|Layer Inspector|
-![](docs/grafana_global_alerts.png)|![](docs/grafana_layer_inspector.png)
+![](grafana_global_alerts.png)|![](grafana_layer_inspector.png)
 |Error Inspector||
-![](docs/grafana_error_inspector.png)||
+![](grafana_error_inspector.png)||
 
 
 [Back to main README](../README.md)
