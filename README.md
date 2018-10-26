@@ -631,11 +631,13 @@ Produces output for `testssl.sh` to consume:
 -S -P -p --fast --logfile testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.log \
   --jsonfile-pretty testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.json \
   --csvfile testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.csv \
-  --htmlfile testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.html https://my-app-prod.test.com
+  --htmlfile testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.html \
+  https://my-app-prod.test.com
 -S -P -p --fast --logfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.log \
   --jsonfile-pretty testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.json \
   --csvfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.csv \
-  --htmlfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.html https://bitsofinfo.test.com
+  --htmlfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.html \
+  https://bitsofinfo.test.com
 ```
 
 Which could then be consumed by `testssl.sh` such as:
