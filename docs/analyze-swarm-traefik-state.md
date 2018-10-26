@@ -1,6 +1,6 @@
 ## <a id="analyze-swarm-traefik-state"></a>analyze-swarm-traefik-state.py
 
-[Back to main README](README.md)
+[Back to main README](../README.md)
 
 This script orchestrates all the following steps with one command:
 
@@ -41,4 +41,4 @@ Options:
 
 The meaning for the options above are the same as and described in the separate sections above for each separate module
 
-[Back to main README](README.md)
+[Back to main README](../README.md)

@@ -1,6 +1,6 @@
 ## <a id="servicechecksdb"></a>servicechecksdb.py
 
-[Back to main README](README.md)
+[Back to main README](../README.md)
 
 This script consumes the output from `swarmstatedb.py` and supplements it with information from `[swarm-name].yml`, and one or more relevant `service-state.yml` files to compute an exhaustive list of all possible ingress paths to invoke the appropriate service checks for each service exposed on the swarm via each layer of access (0:swarm direct, 1:traefik direct, 2:load-balancers, and 3:normal fqdns).
 
@@ -159,4 +159,4 @@ Decorates additional info to `swarmstatedb` output from `service-state.yml` file
   ...
 ```
 
-[Back to main README](README.md)
+[Back to main README](../README.md)

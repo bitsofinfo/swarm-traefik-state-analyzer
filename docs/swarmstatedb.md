@@ -1,6 +1,6 @@
 ## <a id="swarmstatedb"></a>swarmstatedb.py
 
-[Back to main README](README.md)
+[Back to main README](../README.md)
 
 This script will interrogate a target swarm for services matching `--service-filter` and dump a summarized subset of the relevant information in a JSON file which can then be consumed by `servicechecksdb.py`...or whatever else you want to do with it. The information it extracts contains published port information, traefik labels, image info, number of replicas amongst other things.
 
@@ -41,4 +41,4 @@ Produces output:
     }
 ```
 
-[Back to main README](README.md)
+[Back to main README](../README.md)
