@@ -1,6 +1,6 @@
 ## <a id="servicechecker"></a>servicechecker.py
 
-[Back to main README](README.md)
+[Back to main README](../README.md)
 
 This script consumes the output from `servicechecksdb.py` uses it to actually execute all the defined service check requests (in parallel) defined in the `servicechecksdb.py` JSON output file. The results are written into a JSON file containing the detailed results and metrics of all service checks completed. Note depending on the number of checks the prior scripts pre-computed, this could result in a very large result file.
 
@@ -110,4 +110,4 @@ Produces (a ton of) output related to every health check executed, including att
   ...
 ```
 
-[Back to main README](README.md)
+[Back to main README](../README.md)
