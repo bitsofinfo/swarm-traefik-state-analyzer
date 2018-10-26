@@ -88,16 +88,26 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                                 continue
 
                         # matches our fqdn filter if present?
+                        skippable = False
                         if collapse_on_fqdn_re_filter:
                             collapse_fqdn_match = collapse_on_fqdn_re_filter.search(target_url)
                             if collapse_fqdn_match:
-                                collapsed_fqdn_found = collapse_fqdn_match.group(1)
-                                if collapsed_fqdn_found in collapsed_fqdns_found:
-                                    logging.debug("Skipping " + service_record['name'] + " url " + target_url + " as collapse_on_fqdn_filter already has a match for: " + collapsed_fqdn_found)
-                                    continue
-                                elif collapsed_fqdn_found:
-                                    logging.debug("collapse_on_fqdn_filter matched " + service_record['name'] + " url " + target_url + " will use this as our collapsed match for fqdn: " + collapsed_fqdn_found)
-                                    collapsed_fqdns_found.append(collapsed_fqdn_found)
+                                for i in range(1,20):
+                                    try:
+                                        collapsed_fqdn_found = collapse_fqdn_match.group(i)
+                                    except IndexError:
+                                        continue
+                                        
+                                    if collapsed_fqdn_found in collapsed_fqdns_found:
+                                        logging.debug("Skipping " + service_record['name'] + " url " + target_url + " as collapse_on_fqdn_filter already has a match for: " + collapsed_fqdn_found)
+                                        skippable = True
+                                        break
+                                    elif collapsed_fqdn_found:
+                                        logging.debug("collapse_on_fqdn_filter matched " + service_record['name'] + " url " + target_url + " will use this as our collapsed match for fqdn: " + collapsed_fqdn_found)
+                                        collapsed_fqdns_found.append(collapsed_fqdn_found)
+
+                        if skippable:
+                            continue
 
                         # create a unique name for each filename, containing relevant swarm info
                         timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
