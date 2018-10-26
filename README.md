@@ -601,6 +601,54 @@ Another cause of issues can typically be TLS/SSL related, expired certificates, 
 
 1. [testsslinputgenerator.py](#testsslinputgenerator): Reads a `servicechecksdb.json` output file to produce a `testssl_input.txt` file that can be used to feed `testssl.sh` invocations.
 
+
+## <a id="testsslinputgenerator"></a>testsslinputgenerator.py
+
+```bash
+./testsslinputgenerator.py --input-filename [filename] \
+  --output-filename [filename] \
+  --testssl-nonfile-args [single quoted args] \
+  --testssl-outputdir [relative or full path to a dir] \
+  --fqdn-filter [single quoted regex] \
+  --uri-bucket-filter [single quoted regex] \
+  --collapse-on-fqdn-filter [single quoted regex]
+```
+
+parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicechecksdb.json", help="Filename of layer check check database")
+parser.add_argument('-o', '--output-filename', dest='output_filename', default="testssl_input.txt")
+parser.add_argument('-a', '--testssl-nonfile-args', dest='testssl_nonfile_args', help='any valid testssh.sh argument other than any of the "--*file" destination arguments, default "-S -P -p --fast"', default="-S -P -p --fast")
+parser.add_argument('-d', '--testssl-outputdir', dest='testssl_outputdir', help='for each command generated, the root output dir for all --*file arguments, default "testssl_output"', default="testssl_output")
+parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
+parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
+parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
+parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs actually included in output")
+parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' to actually include in output")
+parser.add_argument('-c', '--collapse-on-fqdn-filter', dest='collapse_on_fqdn_filter', default=None, help="Capturing Regex filter to match on fqdns that share a common element and limit the test to only one of those matches, the first one found. For wildcard certs, this might be something like '.*(.wildcard.domain)'")
+
+
+Options:
+* `--input-filename`: name of the input file (i.e. this must be the output file of `servicecheckerdb.py`)
+* `--output-filename`: name of the file to output the `testssl.sh` commands in. This file can be used to feed `testssl.sh`
+* `--testssl-nonfile-args`: any valid `testssl.sh` argument other than any of the `testssl.sh` output `--*file` arguments such as `--jsonfile, --csvfile` etc. Why? because this script will auto generate those for you. The defaults for this are `-S -P -p --fast`
+* `--testssl-outputdir`: for each `testssh.sh` command generated into the `--output-filename` this will be the the root output dir for all generated `testssl.sh` `--*file` arguments, default value: `testssl_output`
+* `--log-file`: path to log file, otherwise STDOUT
+* `--log-level`: python log level (DEBUG, WARN ... etc)
+* `--fqdn-filter`: Regex filter to limit which FQDNs from the `--input-filename`'s `service_record.unique_entrypoint_uris.[bucket].[fqdns]` are actually included in the generated `--output-filename`
+* `--uri-bucket-filter`: Regex filter to limit which `unique_entrypoint_uris.[bucketname]` to actually include in the output
+* `--collapse-on-fqdn-filter`: Capturing Regex filter to match on fqdns that share a common element and limit the generated output to only one of those matches, the first one found. For wildcard names, this might be something like `'.*(.wildcard.domain)|.*(.wildcard.domain2)'`
+
+Produces output for `testssl.sh` to consume:
+```
+-S -P -p --fast --logfile testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.log \
+  --jsonfile-pretty testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.json \
+  --csvfile testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.csv \
+  --htmlfile testssl_output/myswarm1/my-app-prod-11-beta2_app/my-app-prod.test.com/result.html https://my-app-prod.test.com
+-S -P -p --fast --logfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.log \
+  --jsonfile-pretty testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.json \
+  --csvfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.csv \
+  --htmlfile testssl_output/myswarm1/my-app-prod-11-beta2_app/bitsofinfo.test.com/result.html https://bitsofinfo.test.com
+```
+
 ## <a id="grafana"></a>Grafana dashboards
 
 Several Grafana dashboards are provided which consume the metrics produced by `servicecheckerdb2prometheus.py`. The dashboards are in json format within the `grafana/` dir
