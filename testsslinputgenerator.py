@@ -97,7 +97,7 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                                         collapsed_fqdn_found = collapse_fqdn_match.group(i)
                                     except IndexError:
                                         continue
-                                        
+
                                     if collapsed_fqdn_found in collapsed_fqdns_found:
                                         logging.debug("Skipping " + service_record['name'] + " url " + target_url + " as collapse_on_fqdn_filter already has a match for: " + collapsed_fqdn_found)
                                         skippable = True
@@ -119,10 +119,10 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                             filename = timestamp
 
                         # filenames for all types
-                        logfilename = file_arg_target_dir+"/testssl__"+filename+".log"
-                        csvfilename = file_arg_target_dir+"/testssl__"+filename+".csv"
-                        htmlfilename = file_arg_target_dir+"/testssl__"+filename+".html"
-                        jsonfilename = file_arg_target_dir+"/testssl__"+filename+".json"
+                        logfilename = file_arg_target_dir+"/testssloutput__"+filename+".log"
+                        csvfilename = file_arg_target_dir+"/testssloutput__"+filename+".csv"
+                        htmlfilename = file_arg_target_dir+"/testssloutput__"+filename+".html"
+                        jsonfilename = file_arg_target_dir+"/testssloutput__"+filename+".json"
 
                         # append the actuall flags + file log args for the target_url
                         testssl_sh_commands += testssl_nonfile_args + " --logfile %s --jsonfile-pretty %s --csvfile %s --htmlfile %s %s\n" % (logfilename,jsonfilename,csvfilename,htmlfilename,target_url)
