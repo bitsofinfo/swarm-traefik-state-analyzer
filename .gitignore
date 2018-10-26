@@ -11,6 +11,8 @@
 *_input.*
 *_cmds.*
 
+testssl_cmds
+
 output/
 output
 
