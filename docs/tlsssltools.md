@@ -29,7 +29,7 @@ Options:
 * `--output-filename`: name of the file to output the `testssl.sh` commands in
 * `--output-mode`: output a `plain` text file of one command per line or a executable `sh` script, default `plain`
 * `--testssl-dir`: dir containing the `testssl.sh` script to prepend to the command, default `./`
-* `--testssl-outputmode`: for each command generated, the filenames by which the `testssl.sh` `-*file` output file arguments will be generated. Default `files`. If `dirs` a unique dir structure will be created based on `swarmname/servicename/fqdn/[timestamp].[ext]`, if `files` each output file will be in the same `--testssl-outputdir` directory but named such as `swarmname__servicename__fqdn__[timestamp].[ext]`
+* `--testssl-outputmode`: for each command generated, the filenames by which the `testssl.sh` `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on `swarmname/servicename/fqdn/[timestamp].[ext]`, If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as `swarmname__servicename__fqdn__[timestamp].[ext]`
 * `--testssl-nonfile-args`: any valid `testssl.sh` argument other than any of the `testssl.sh` output `--*file` arguments such as `--jsonfile, --csvfile` etc. Why? because this script will auto generate those for you. The defaults for this are `-S -P -p --fast`
 * `--testssl-outputdir`: for each `testssl.sh` command generated into the `--output-filename` this will be the the root output dir for all generated `testssl.sh` `--*file` arguments, default value: `testssl_output`
 * `--log-file`: path to log file, otherwise STDOUT

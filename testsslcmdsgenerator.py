@@ -61,6 +61,10 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
         if collapse_on_fqdn_filter:
             collapse_on_fqdn_re_filter = re.compile(collapse_on_fqdn_filter,re.M|re.I)
 
+
+        if testssl_outputdir is not None and len(testssl_outputdir) > 0 and not testssl_outputdir.endswith('/'):
+            testssl_outputdir = testssl_outputdir + "/"
+
         # process it all
         for service_record in layer_check_db:
 
@@ -113,14 +117,21 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
 
                         # create a unique name for each filename, containing relevant swarm info
                         timestamp = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')
+                        fqdn_port = target_url.replace("https://","").replace(":","_")
+                        fqdn_only = target_url.replace("https://","")
+                        fqdn_only = re.sub(":\d+","",fqdn_only)
+
                         if testssl_outputmode == 'files':
                             file_arg_target_dir = testssl_outputdir
                             filename = service_record["swarm_name"] + "__" +service_record["name"] + "__" + target_url.replace("https://","").replace(":","_") + "__" + timestamp
-                        else:
-                            file_arg_target_dir = testssl_outputdir + "/" + service_record["swarm_name"] + "/" +service_record["name"] + "/" + target_url.replace("https://","").replace(":","_")
+                        elif testssl_outputmode == 'dirs1':
+                            file_arg_target_dir = testssl_outputdir + service_record["swarm_name"] + "/" +service_record["name"] + "/" + fqdn_port
                             filename = timestamp
+                        elif testssl_outputmode == 'dirs2':
+                            file_arg_target_dir = testssl_outputdir + fqdn_only + "/" + timestamp + "/" + service_record["swarm_name"] + "/" +service_record["name"]
+                            filename = fqdn_port
 
-                        if output_mode == 'sh':
+                        if output_mode == 'sh' and file_arg_target_dir != '':
                             testssl_sh_commands += "mkdir -p " + file_arg_target_dir + "\n"
 
                         # filenames for all types
@@ -163,7 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('-D', '--testssl-dir', dest='testssl_dir', help='dir containing the `testssl.sh` script to prepend to the command, default `./`"', default="./")
     parser.add_argument('-a', '--testssl-nonfile-args', dest='testssl_nonfile_args', help='any valid testssl.sh argument other than any of the "--*file" destination arguments, default "-S -P -p --fast"', default="-S -P -p --fast")
     parser.add_argument('-d', '--testssl-outputdir', dest='testssl_outputdir', help='for each command generated, the root output dir for all --*file arguments, default "testssl_output"', default="testssl_output")
-    parser.add_argument('-m', '--testssl-outputmode', dest='testssl_outputmode', help='for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs` a unique dir structure will be created based on swarmname/servicename/fqdn/[timestamp].[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as swarmname__servicename__fqdn__[timestamp].[ext]', default="files")
+    parser.add_argument('-m', '--testssl-outputmode', dest='testssl_outputmode', help='for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on swarmname/servicename/fqdn/[timestamp].[ext], If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as swarmname__servicename__fqdn__[timestamp].[ext]', default="files")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
