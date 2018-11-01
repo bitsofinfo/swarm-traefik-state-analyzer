@@ -35,6 +35,8 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
 * [Grafana dashboards](docs/grafana.md)
 * [Docker](#docker)
 
+![](docs/arch.png)
+
 ## <a id="architecture"></a>Architecture overview
 
 This suite of modules is built around the following simple architecture
