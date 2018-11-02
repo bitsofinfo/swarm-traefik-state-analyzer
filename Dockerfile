@@ -12,7 +12,8 @@ RUN apk update ; \
     rm -rf /swarm-traefik-state-analyzer ; \
     apk del git ; \
     ls -al /usr/local/bin ; \
-    chmod +x /usr/local/bin/*.py
+    chmod +x /usr/local/bin/*.py ; \
+    rm -rf /var/cache/apk/*
 
 # required modules
-RUN pip install docker jinja2 pyyaml python-dateutil prometheus_client watchdog docker
+RUN pip install --upgrade pip docker jinja2 pyyaml python-dateutil prometheus_client watchdog
