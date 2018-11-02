@@ -20,6 +20,14 @@ Ugh... well those kinds of questions is what this tool is intended to *assist* i
 
 By validating access directly through all possible layers of a Swarm/Traefik footprint you can help figure out what layers are having issues to properly stop the bleeding.
 
+## Required modules to run
+
+Python 3
+
+```
+pip install docker jinja2 pyyaml python-dateutil prometheus_client watchdog docker
+```
+
 * [Architecture overview](#architecture)
   * [Swarm Info files](#swarminfo)
   * [Service State files](#servicestate)

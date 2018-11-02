@@ -375,6 +375,10 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
         # for the given docker service data record
         service_state = getServiceState(docker_service_data)
 
+        if service_state is None:
+            logging.warn("No service_state (service-state.xml?) could be found for docker service: " + docker_service_data['name'] + " skipping...")
+            continue;
+
         # setup warnings so mis-configurations can be logged
         docker_service_data['warnings'] = set()
 

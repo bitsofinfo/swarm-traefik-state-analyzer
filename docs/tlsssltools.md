@@ -29,14 +29,16 @@ Options:
 * `--output-filename`: name of the file to output the `testssl.sh` commands in
 * `--output-mode`: output a `plain` text file of one command per line or a executable `sh` script, default `plain`
 * `--testssl-dir`: dir containing the `testssl.sh` script to prepend to the command, default `./`
+* `--testssl-output-file-types`: The `--*file` argument types that will be included for each command (comma delimited no spaces), default all: "html,json,csv,log"
 * `--testssl-outputmode`: for each command generated, the filenames by which the `testssl.sh` `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on `swarmname/servicename/fqdn/[timestamp].[ext]`, If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as `swarmname__servicename__fqdn__[timestamp].[ext]`
-* `--testssl-nonfile-args`: any valid `testssl.sh` argument other than any of the `testssl.sh` output `--*file` arguments such as `--jsonfile, --csvfile` etc. Why? because this script will auto generate those for you. The defaults for this are `-S -P -p --fast`
+* `--testssl-nonfile-args`: any valid `testssl.sh` argument other than any of the `testssl.sh` output `--*file` arguments such as `--jsonfile, --csvfile` etc. Why? because this script will auto generate those for you via the `--testssl-output-file-types` above with proper directories. The defaults for this are `-S -P -p -U --fast`
 * `--testssl-outputdir`: for each `testssl.sh` command generated into the `--output-filename` this will be the the root output dir for all generated `testssl.sh` `--*file` arguments, default value: `testssl_output`
 * `--log-file`: path to log file, otherwise STDOUT
 * `--log-level`: python log level (DEBUG, WARN ... etc)
 * `--fqdn-filter`: Regex filter to limit which FQDNs from the `--input-filename`'s `service_record.unique_entrypoint_uris.[bucket].[fqdns]` are actually included in the generated `--output-filename`
-* `--uri-bucket-filter`: Regex filter to limit which `unique_entrypoint_uris.[bucketname]` to actually include in the output
+* `--uri-bucket-filter`: Regex filter to limit which `unique_entrypoint_uris.[bucketname]` to actually include in the output. (buckets are 'via_direct' & 'via_fqdn')
 * `--collapse-on-fqdn-filter`: Capturing Regex filter to match on fqdns that share a common element and limit the generated output to only one of those matches, the first one found. For wildcard names, this might be something like `'.*(.wildcard.domain)|.*(.wildcard.domain2)'`
+* `--limit-via-direct`: For the 'via_direct' bucket limit the total number of uris to include. Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service
 
 Produces output of commands: (`--output-mode sh`)
 ```

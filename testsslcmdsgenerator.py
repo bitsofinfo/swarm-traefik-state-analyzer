@@ -10,7 +10,6 @@ import argparse
 import getopt, sys
 import datetime
 import logging
-import base64
 import time
 
 # De-deuplicates a list of objects, where the value is the same
@@ -29,7 +28,8 @@ def dedup(list_of_objects):
 # Does the bulk of the work
 def execute(input_filename,output_filename,stdout_result,fqdn_filter,
     testssl_nonfile_args,testssl_outputdir,uri_bucket_filter,
-    collapse_on_fqdn_filter,testssl_outputmode,testssl_dir,output_mode):
+    collapse_on_fqdn_filter,testssl_outputmode,testssl_dir,output_mode,limit_via_direct,
+    testssl_output_file_types):
 
 
     try:
@@ -73,7 +73,12 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                 logging.debug("Skipping, no replicas for: " + service_record['name'])
                 continue
 
-            # we have replicas and lets do some checks
+            # no key? skip it
+            if 'unique_entrypoint_uris' not in service_record:
+                logging.debug("Skipping, no unique_entrypoint_uris for: " + service_record['name'])
+                continue
+
+
             for via_bucket in service_record['unique_entrypoint_uris']:
 
                 # skip buckets we don't want
@@ -83,7 +88,13 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                         continue
 
                 # bucket is ok proceed
+                via_direct_uri_count = 0
+
                 for target_url in service_record['unique_entrypoint_uris'][via_bucket]:
+
+                    if limit_via_direct and via_direct_uri_count >= 1:
+                        print("limiting " + target_url)
+                        continue
 
                     if 'https' in target_url:
 
@@ -141,7 +152,22 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                         jsonfilename = file_arg_target_dir+"/testssloutput__"+filename+".json"
 
                         # append the actuall flags + file log args for the target_url
-                        testssl_sh_commands += testssl_dir + "testssl.sh " + testssl_nonfile_args + " --logfile %s --jsonfile-pretty %s --csvfile %s --htmlfile %s %s\n" % (logfilename,jsonfilename,csvfilename,htmlfilename,target_url)
+                        testssl_sh_commands += testssl_dir + "testssl.sh " + testssl_nonfile_args
+
+                        if 'log' in testssl_output_file_types:
+                            testssl_sh_commands += " --logfile %s " % (logfilename)
+                        if 'json' in testssl_output_file_types:
+                            testssl_sh_commands += " --jsonfile-pretty %s " % (jsonfilename)
+                        if 'csv' in testssl_output_file_types:
+                            testssl_sh_commands += " --csvfile %s " % (csvfilename)
+                        if 'html' in testssl_output_file_types:
+                            testssl_sh_commands += " --htmlfile %s " % (htmlfilename)
+
+                        testssl_sh_commands += "%s\n" % (target_url)
+
+                        # bump up the via direct bucket count
+                        if via_bucket == 'via_direct':
+                            via_direct_uri_count += 1
 
         # write it out...
         if output_filename is not None:
@@ -172,14 +198,16 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--output-filename', dest='output_filename', default="testssl_cmds")
     parser.add_argument('-M', '--output-mode', dest='output_mode', help="output a `plain` text file of one command per line or a executable `sh` script, default `sh`", default="plain")
     parser.add_argument('-D', '--testssl-dir', dest='testssl_dir', help='dir containing the `testssl.sh` script to prepend to the command, default `./`"', default="./")
-    parser.add_argument('-a', '--testssl-nonfile-args', dest='testssl_nonfile_args', help='any valid testssl.sh argument other than any of the "--*file" destination arguments, default "-S -P -p --fast"', default="-S -P -p --fast")
+    parser.add_argument('-F', '--testssl-output-file-types', dest='testssl_output_file_types', help='The `--*file` argument types that will be included for each command (comma delimited no spaces), default all: "html,json,csv,log"', default="html,json,csv,log")
+    parser.add_argument('-a', '--testssl-nonfile-args', dest='testssl_nonfile_args', help='any valid testssl.sh argument other than any of the "--*file" destination arguments, default "-S -P -p -U --fast"', default="-S -P -p -U --fast")
     parser.add_argument('-d', '--testssl-outputdir', dest='testssl_outputdir', help='for each command generated, the root output dir for all --*file arguments, default "testssl_output"', default="testssl_output")
     parser.add_argument('-m', '--testssl-outputmode', dest='testssl_outputmode', help='for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on swarmname/servicename/fqdn/[timestamp].[ext], If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as swarmname__servicename__fqdn__[timestamp].[ext]', default="files")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
     parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs actually include in the output")
-    parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' to actually included in output")
+    parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' to actually included in output (buckets are 'via_direct' & 'via_fqdn')")
+    parser.add_argument('-L', '--limit-via-direct', dest='limit_via_direct', action='store_const', const=True, help="For the 'via_direct' bucket limit the total number of uris to include to 1 (one). Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service")
     parser.add_argument('-c', '--collapse-on-fqdn-filter', dest='collapse_on_fqdn_filter', default=None, help="Capturing Regex filter to match on fqdns that share a common element and limit the test to only one of those matches, the first one found. For wildcard certs, this might be something like '.*(.wildcard.domain)'")
 
     args = parser.parse_args()
@@ -192,4 +220,4 @@ if __name__ == '__main__':
     execute(args.input_filename,args.output_filename,args.stdout_result,
         args.fqdn_filter,args.testssl_nonfile_args,args.testssl_outputdir,
         args.uri_bucket_filter,args.collapse_on_fqdn_filter,args.testssl_outputmode,
-        args.testssl_dir,args.output_mode)
+        args.testssl_dir,args.output_mode,args.limit_via_direct,args.testssl_output_file_types)
