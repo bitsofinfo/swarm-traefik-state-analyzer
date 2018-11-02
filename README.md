@@ -20,14 +20,6 @@ Ugh... well those kinds of questions is what this tool is intended to *assist* i
 
 By validating access directly through all possible layers of a Swarm/Traefik footprint you can help figure out what layers are having issues to properly stop the bleeding.
 
-## Required modules to run
-
-Python 3
-
-```
-pip install docker jinja2 pyyaml python-dateutil prometheus_client watchdog docker
-```
-
 * [Architecture overview](#architecture)
   * [Swarm Info files](#swarminfo)
   * [Service State files](#servicestate)
@@ -90,6 +82,14 @@ This project provides multiple modules who's input/output can be used between ea
 1. [analyze-swarm-traefik-state.py](docs/analyze-swarm-traefik-state.md): orchestrates the above steps in one simple command
 1. [servicecheckerdb2prometheus.py](docs/servicecheckerdb2prometheus.md): monitors a directory for `servicechecker` output and exposes as Prometheus`/metrics`
 1. [testsslinputgenerator.py](docs/testsslinputgenerator.md): Generates [testssl.sh](https://github.com/drwetter/testssl.sh) compatible input file from a `servicechecksdb` output file.
+
+## Required modules to run
+
+Python 3
+
+```
+pip install docker jinja2 pyyaml python-dateutil prometheus_client watchdog docker
+```
 
 ## <a id="docker"></a>Docker
 
