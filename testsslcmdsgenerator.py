@@ -61,6 +61,8 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
         if collapse_on_fqdn_filter:
             collapse_on_fqdn_re_filter = re.compile(collapse_on_fqdn_filter,re.M|re.I)
 
+        if testssl_outputdir is None:
+            testssl_outputdir = ""
 
         if testssl_outputdir is not None and len(testssl_outputdir) > 0 and not testssl_outputdir.endswith('/'):
             testssl_outputdir = testssl_outputdir + "/"
@@ -152,6 +154,9 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                         jsonfilename = file_arg_target_dir+"/testssloutput__"+filename+".json"
 
                         # append the actuall flags + file log args for the target_url
+                        if testssl_dir is None:
+                            testssl_dir = ""
+
                         testssl_sh_commands += testssl_dir + "testssl.sh " + testssl_nonfile_args
 
                         if 'log' in testssl_output_file_types:
@@ -194,21 +199,21 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicechecksdb.json", help="Filename of layer check check database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="testssl_cmds")
-    parser.add_argument('-M', '--output-mode', dest='output_mode', help="output a `plain` text file of one command per line or a executable `sh` script, default `sh`", default="plain")
-    parser.add_argument('-D', '--testssl-dir', dest='testssl_dir', help='dir containing the `testssl.sh` script to prepend to the command, default `./`"', default="./")
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicechecksdb.json", help="input filename of layer check check database, default: 'servicechecksdb.json'")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', help="Output filename, default 'testssl_cmds'", default="testssl_cmds")
+    parser.add_argument('-M', '--output-mode', dest='output_mode', help="output a `plain` text file of one command per line or a executable `sh` script, default `plain`", default="plain")
+    parser.add_argument('-D', '--testssl-dir', dest='testssl_dir', help='dir containing the `testssl.sh` script to prepend to the command, default None"', default=None)
     parser.add_argument('-F', '--testssl-output-file-types', dest='testssl_output_file_types', help='The `--*file` argument types that will be included for each command (comma delimited no spaces), default all: "html,json,csv,log"', default="html,json,csv,log")
     parser.add_argument('-a', '--testssl-nonfile-args', dest='testssl_nonfile_args', help='any valid testssl.sh argument other than any of the "--*file" destination arguments, default "-S -P -p -U --fast"', default="-S -P -p -U --fast")
-    parser.add_argument('-d', '--testssl-outputdir', dest='testssl_outputdir', help='for each command generated, the root output dir for all --*file arguments, default "testssl_output"', default="testssl_output")
-    parser.add_argument('-m', '--testssl-outputmode', dest='testssl_outputmode', help='for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on swarmname/servicename/fqdn/[timestamp].[ext], If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as swarmname__servicename__fqdn__[timestamp].[ext]', default="files")
-    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
-    parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
-    parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk")
-    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs actually include in the output")
-    parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' to actually included in output (buckets are 'via_direct' & 'via_fqdn')")
-    parser.add_argument('-L', '--limit-via-direct', dest='limit_via_direct', action='store_const', const=True, help="For the 'via_direct' bucket limit the total number of uris to include to 1 (one). Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service")
-    parser.add_argument('-c', '--collapse-on-fqdn-filter', dest='collapse_on_fqdn_filter', default=None, help="Capturing Regex filter to match on fqdns that share a common element and limit the test to only one of those matches, the first one found. For wildcard certs, this might be something like '.*(.wildcard.domain)'")
+    parser.add_argument('-d', '--testssl-outputdir', dest='testssl_outputdir', help='for each command generated, the root output dir for all --*file arguments, default None', default=None)
+    parser.add_argument('-m', '--testssl-outputmode', dest='testssl_outputmode', help='for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on swarmname/servicename/fqdn/testssloutput__[timestamp].[ext], If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/testssloutput__fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as testssloutput__[swarmname]__[servicename]__[fqdn]__[timestamp].[ext]', default="files")
+    parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default 'DEBUG'")
+    parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None which will output to STDOUT")
+    parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk, default off")
+    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs actually include in the output. Default None")
+    parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' to actually included in output (buckets are 'via_direct' & 'via_fqdn'). Default: None")
+    parser.add_argument('-L', '--limit-via-direct', dest='limit_via_direct', action='store_const', const=True, help="For the 'via_direct' bucket, if this flag is present: limit the total number of uris included to only ONE uri. Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service")
+    parser.add_argument('-c', '--collapse-on-fqdn-filter', dest='collapse_on_fqdn_filter', default=None, help="Capturing Regex filter to match on fqdns that share a common element and limit the test to only one of those matches, the first one found. For wildcard certs, this might be something like '.*(.wildcard.domain)'. Default None")
 
     args = parser.parse_args()
 
