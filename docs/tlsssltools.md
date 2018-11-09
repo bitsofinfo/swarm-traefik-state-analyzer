@@ -12,33 +12,81 @@ Another cause of issues can typically be TLS/SSL related, expired certificates, 
 ## <a id="testsslcmdsgenerator"></a>testsslcmdsgenerator.py
 
 ```bash
-./testsslcmdsgenerator.py --input-filename [filename] \
-  --output-filename [filename] \
-  --output-mode [plain | sh] \
-  --testssl-dir [dir of testssl cmd] \
-  --testssl-nonfile-args [single quoted args] \
-  --testssl-outputdir [relative or full path to a dir] \
-  --testssl-outputmode [dirs | files] \
-  --fqdn-filter [single quoted regex] \
-  --uri-bucket-filter [single quoted regex] \
-  --collapse-on-fqdn-filter [single quoted regex]
-```
+./testsslcmdsgenerator.py --help                                                                                                           ✱
 
-Options:
-* `--input-filename`: name of the input file (i.e. this must be the output file of `servicecheckerdb.py`)
-* `--output-filename`: name of the file to output the `testssl.sh` commands in
-* `--output-mode`: output a `plain` text file of one command per line or a executable `sh` script, default `plain`
-* `--testssl-dir`: dir containing the `testssl.sh` script to prepend to the command, default `./`
-* `--testssl-output-file-types`: The `--*file` argument types that will be included for each command (comma delimited no spaces), default all: "html,json,csv,log"
-* `--testssl-outputmode`: for each command generated, the filenames by which the `testssl.sh` `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on `swarmname/servicename/fqdn/[timestamp].[ext]`, If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as `swarmname__servicename__fqdn__[timestamp].[ext]`
-* `--testssl-nonfile-args`: any valid `testssl.sh` argument other than any of the `testssl.sh` output `--*file` arguments such as `--jsonfile, --csvfile` etc. Why? because this script will auto generate those for you via the `--testssl-output-file-types` above with proper directories. The defaults for this are `-S -P -p -U --fast`
-* `--testssl-outputdir`: for each `testssl.sh` command generated into the `--output-filename` this will be the the root output dir for all generated `testssl.sh` `--*file` arguments, default value: `testssl_output`
-* `--log-file`: path to log file, otherwise STDOUT
-* `--log-level`: python log level (DEBUG, WARN ... etc)
-* `--fqdn-filter`: Regex filter to limit which FQDNs from the `--input-filename`'s `service_record.unique_entrypoint_uris.[bucket].[fqdns]` are actually included in the generated `--output-filename`
-* `--uri-bucket-filter`: Regex filter to limit which `unique_entrypoint_uris.[bucketname]` to actually include in the output. (buckets are 'via_direct' & 'via_fqdn')
-* `--collapse-on-fqdn-filter`: Capturing Regex filter to match on fqdns that share a common element and limit the generated output to only one of those matches, the first one found. For wildcard names, this might be something like `'.*(.wildcard.domain)|.*(.wildcard.domain2)'`
-* `--limit-via-direct`: For the 'via_direct' bucket limit the total number of uris to include. Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service
+usage: testsslcmdsgenerator.py [-h] [-i INPUT_FILENAME] [-o OUTPUT_FILENAME]
+                               [-M OUTPUT_MODE] [-D TESTSSL_DIR]
+                               [-F TESTSSL_OUTPUT_FILE_TYPES]
+                               [-a TESTSSL_NONFILE_ARGS]
+                               [-d TESTSSL_OUTPUTDIR] [-m TESTSSL_OUTPUTMODE]
+                               [-x LOG_LEVEL] [-b LOG_FILE] [-z]
+                               [-e FQDN_FILTER] [-B URI_BUCKET_FILTER] [-L]
+                               [-c COLLAPSE_ON_FQDN_FILTER]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT_FILENAME, --input-filename INPUT_FILENAME
+                        input filename of layer check check database, default:
+                        'servicechecksdb.json'
+  -o OUTPUT_FILENAME, --output-filename OUTPUT_FILENAME
+                        Output filename, default 'testssl_cmds'
+  -M OUTPUT_MODE, --output-mode OUTPUT_MODE
+                        output a `plain` text file of one command per line or
+                        a executable `sh` script, default `plain`
+  -D TESTSSL_DIR, --testssl-dir TESTSSL_DIR
+                        dir containing the `testssl.sh` script to prepend to
+                        the command, default None"
+  -F TESTSSL_OUTPUT_FILE_TYPES, --testssl-output-file-types TESTSSL_OUTPUT_FILE_TYPES
+                        The `--*file` argument types that will be included for
+                        each command (comma delimited no spaces), default all:
+                        "html,json,csv,log"
+  -a TESTSSL_NONFILE_ARGS, --testssl-nonfile-args TESTSSL_NONFILE_ARGS
+                        any valid testssl.sh argument other than any of the
+                        "--*file" destination arguments, default "-S -P -p -U
+                        --fast"
+  -d TESTSSL_OUTPUTDIR, --testssl-outputdir TESTSSL_OUTPUTDIR
+                        for each command generated, the root output dir for
+                        all --*file arguments, default None
+  -m TESTSSL_OUTPUTMODE, --testssl-outputmode TESTSSL_OUTPUTMODE
+                        for each command generated, the filenames by which the
+                        testssl.sh `-*file` output file arguments will be
+                        generated. Default `files`. If `dirs1` a unique dir
+                        structure will be created based on swarmname/servicena
+                        me/fqdn/testssloutput__[timestamp].[ext], If `dirs2` a
+                        unique dir structure will be created based on fqdn/[ti
+                        mestamp]/swarmname/servicename/testssloutput__fqdn.[ex
+                        t], if `files` each output file will be in the same
+                        `--testssl-outputdir` directory but named such as test
+                        ssloutput__[swarmname]__[servicename]__[fqdn]__[timest
+                        amp].[ext]
+  -x LOG_LEVEL, --log-level LOG_LEVEL
+                        log level, default 'DEBUG'
+  -b LOG_FILE, --log-file LOG_FILE
+                        Path to log file, default None which will output to
+                        STDOUT
+  -z, --stdout-result   print results to STDOUT in addition to output-filename
+                        on disk, default off
+  -e FQDN_FILTER, --fqdn-filter FQDN_FILTER
+                        Regex filter to limit which FQDNs actually include in
+                        the output. Default None
+  -B URI_BUCKET_FILTER, --uri-bucket-filter URI_BUCKET_FILTER
+                        Regex filter to limit which
+                        'unique_entrypoint_uris.[bucketname]' to actually
+                        included in output (buckets are 'via_direct' &
+                        'via_fqdn'). Default: None
+  -L, --limit-via-direct
+                        For the 'via_direct' bucket, if this flag is present:
+                        limit the total number of uris included to only ONE
+                        uri. Given these represent swarm nodes, only one is
+                        typically needed to test the cert presented directly
+                        by that service
+  -c COLLAPSE_ON_FQDN_FILTER, --collapse-on-fqdn-filter COLLAPSE_ON_FQDN_FILTER
+                        Capturing Regex filter to match on fqdns that share a
+                        common element and limit the test to only one of those
+                        matches, the first one found. For wildcard certs, this
+                        might be something like '.*(.wildcard.domain)'.
+                        Default None
+```
 
 Produces output of commands: (`--output-mode sh`)
 ```
