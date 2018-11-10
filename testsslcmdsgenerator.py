@@ -95,7 +95,6 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                 for target_url in service_record['unique_entrypoint_uris'][via_bucket]:
 
                     if limit_via_direct and via_direct_uri_count >= 1:
-                        print("limiting " + target_url)
                         continue
 
                     if 'https' in target_url:
@@ -210,10 +209,10 @@ if __name__ == '__main__':
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default 'DEBUG'")
     parser.add_argument('-b', '--log-file', dest='log_file', default=None, help="Path to log file, default None which will output to STDOUT")
     parser.add_argument('-z', '--stdout-result', action='store_true', help="print results to STDOUT in addition to output-filename on disk, default off")
-    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs actually include in the output. Default None")
-    parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' to actually included in output (buckets are 'via_direct' & 'via_fqdn'). Default: None")
-    parser.add_argument('-L', '--limit-via-direct', dest='limit_via_direct', action='store_const', const=True, help="For the 'via_direct' bucket, if this flag is present: limit the total number of uris included to only ONE uri. Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service")
-    parser.add_argument('-c', '--collapse-on-fqdn-filter', dest='collapse_on_fqdn_filter', default=None, help="Capturing Regex filter to match on fqdns that share a common element and limit the test to only one of those matches, the first one found. For wildcard certs, this might be something like '.*(.wildcard.domain)'. Default None")
+    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs actually include in the output from 'unique_entrypoint_uris' within (servicechecksdb). Default None")
+    parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' from the --input-filename (servicechecksdb) to actually included in output (buckets are 'via_direct' & 'via_fqdn'). Default: None")
+    parser.add_argument('-L', '--limit-via-direct', dest='limit_via_direct', action='store_const', const=True, help="For the 'unique_entrypoint_uris'... 'via_direct' bucket, if this flag is present: limit the total number of uris included to only ONE uri. Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service")
+    parser.add_argument('-c', '--collapse-on-fqdn-filter', dest='collapse_on_fqdn_filter', default=None, help="Capturing Regex filter to match on fqdns from 'unique_entrypoint_uris' that share a common element and limit the test to only one of those matches, the first one found. For wildcard certs, this might be something like '.*(.wildcard.domain)'. Default None")
 
     args = parser.parse_args()
 

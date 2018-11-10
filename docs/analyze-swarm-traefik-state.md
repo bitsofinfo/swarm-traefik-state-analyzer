@@ -8,13 +8,13 @@ This script orchestrates all the following steps with one command:
 1. Invokes: [servicechecksdb.py](servicechecksdb.md)to create database of service checks for the swarm state
 1. Invokes: [servicechecker.py](servicechecker.md) which executes the service checks, captures results
 1. Invokes: [servicecheckerreport.py](servicecheckerreport_doc.md) reads and prepares a simple report  
+1. Optionaly invokes: [testsslcmdsgenerator.py](tlsssltools.md) generates testssl.sh commands file
 
 All of the data generated from `analyze-swarm-traefik-state.py` is stored by default under the `output/` dir within the working directory
 
 ```bash
 ./analyze-swarm-traefik-state.py --help
-
-analyze-swarm-traefik-state.py [-h] -j JOB_NAME -d SWARM_INFO_REPO_ROOT
+usage: analyze-swarm-traefik-state.py [-h] -j JOB_NAME -d SWARM_INFO_REPO_ROOT
                                       -s SERVICE_STATE_REPO_ROOT -n SWARM_NAME
                                       [-f SERVICE_FILTER] [-o OUTPUT_DIR] [-v]
                                       [-l LAYERS [LAYERS ...]]
@@ -25,7 +25,12 @@ analyze-swarm-traefik-state.py [-h] -j JOB_NAME -d SWARM_INFO_REPO_ROOT
                                       [-q DAEMON_INTERVAL_SECONDS] [-c]
                                       [-y PRE_ANALYZE_SCRIPT_PATH]
                                       [-u RETAIN_OUTPUT_HOURS]
-                                      [-w SERVICE_NAME_EXCLUDE_REGEX]
+                                      [-w SERVICE_NAME_EXCLUDE_REGEX] [-T]
+                                      [-A TESTSSL_NONFILE_ARGS]
+                                      [-B URI_BUCKET_FILTER] [-L]
+                                      [-C COLLAPSE_ON_FQDN_FILTER]
+                                      [-M TESTSSL_OUTPUTMODE] [-D TESTSSL_DIR]
+                                      [-F TESTSSL_OUTPUT_FILE_TYPES]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -102,6 +107,58 @@ optional arguments:
                         docker service name that are returned via the
                         --service-filter, will exclude any services matching
                         this regex, default None
+  -T, --gen-testssl-cmds
+                        Also produce a testssl.sh.cmds file, optional, default
+                        no
+  -A TESTSSL_NONFILE_ARGS, --testssl-nonfile-args TESTSSL_NONFILE_ARGS
+                        any valid testssl.sh arguments OTHER THAN any of the
+                        '--*file' destination arguments. IMPORTANT! Please
+                        quote the arguments and provide a single leading SPACE
+                        character ' ' following your leading quote prior to
+                        any arguments (works around ArgumentParser bug).
+                        default ' -S -P -p -U --fast'
+  -B URI_BUCKET_FILTER, --uri-bucket-filter URI_BUCKET_FILTER
+                        For testssl.sh genreated cmds file: Regex filter to
+                        limit which 'unique_entrypoint_uris.[bucketname]' from
+                        the --input-filename (servicechecksdb) to actually
+                        included in output (buckets are 'via_direct' &
+                        'via_fqdn'). Default: None
+  -L, --limit-via-direct
+                        For testssl.sh genreated cmds file: For the
+                        'unique_entrypoint_uris'... 'via_direct' bucket, if
+                        this flag is present: limit the total number of uris
+                        included to only ONE uri. Given these represent swarm
+                        nodes, only one is typically needed to test the cert
+                        presented directly by that service
+  -C COLLAPSE_ON_FQDN_FILTER, --collapse-on-fqdn-filter COLLAPSE_ON_FQDN_FILTER
+                        For testssl.sh genreated cmds file: Capturing Regex
+                        filter to match on fqdns from 'unique_entrypoint_uris'
+                        that share a common element and limit the test to only
+                        one of those matches, the first one found. For
+                        wildcard certs, this might be something like
+                        '.*(.wildcard.domain)'. Default None
+  -M TESTSSL_OUTPUTMODE, --testssl-outputmode TESTSSL_OUTPUTMODE
+                        For testssl.sh genreated cmds file: for each command
+                        generated, the filenames by which the testssl.sh
+                        `-*file` output file arguments will be generated.
+                        Default `files`. If `dirs1` a unique dir structure
+                        will be created based on swarmname/servicename/fqdn/te
+                        stssloutput__[timestamp].[ext], If `dirs2` a unique
+                        dir structure will be created based on fqdn/[timestamp
+                        ]/swarmname/servicename/testssloutput__fqdn.[ext], if
+                        `files` each output file will be in the same
+                        `--testssl-outputdir` directory but named such as test
+                        ssloutput__[swarmname]__[servicename]__[fqdn]__[timest
+                        amp].[ext]
+  -D TESTSSL_DIR, --testssl-dir TESTSSL_DIR
+                        For testssl.sh genreated cmds file: dir containing the
+                        `testssl.sh` script to prepend to the command, default
+                        None"
+  -F TESTSSL_OUTPUT_FILE_TYPES, --testssl-output-file-types TESTSSL_OUTPUT_FILE_TYPES
+                        For testssl.sh genreated cmds file: The `--*file`
+                        argument types that will be included for each command
+                        (comma delimited no spaces), default all:
+                        "html,json,csv,log"
 ```
 
 [Back to main README](../README.md)

@@ -15,6 +15,7 @@ import swarmstatedb
 import servicechecksdb
 import servicechecker
 import servicecheckerreport
+import testsslcmdsgenerator
 import os
 import time
 import shutil
@@ -49,6 +50,16 @@ if __name__ == '__main__':
     parser.add_argument('-y', '--pre-analyze-script-path', default=None, help="Optional, path to executable/script that will be invoked prior to starting any analysis. No arguments, STDOUT captured and logged. If --daemon this will be invoked at the start of each iteration.")
     parser.add_argument('-u', '--retain-output-hours', default=1, help="Optional, default 1, the number of hours of data to retain, purges output dirs older than this time threshold")
     parser.add_argument('-w', '--service-name-exclude-regex', dest='service_name_exclude_regex', help="Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex, default None")
+
+    # testsslcmdsgenerator related args
+    parser.add_argument('-T', '--gen-testssl-cmds', action='store_true', help='Also produce a testssl.sh.cmds file, optional, default no')
+    parser.add_argument('-A', '--testssl-nonfile-args', dest='testssl_nonfile_args', help="any valid testssl.sh arguments OTHER THAN any of the '--*file' destination arguments. IMPORTANT! Please quote the arguments and provide a single leading SPACE character ' ' following your leading quote prior to any arguments (works around ArgumentParser bug). default ' -S -P -p -U --fast'", default="-S -P -p -U --fast")
+    parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="For testssl.sh genreated cmds file: Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' from the --input-filename (servicechecksdb) to actually included in output (buckets are 'via_direct' & 'via_fqdn'). Default: None")
+    parser.add_argument('-L', '--limit-via-direct', dest='limit_via_direct', action='store_const', const=True, help="For testssl.sh genreated cmds file: For the 'unique_entrypoint_uris'... 'via_direct' bucket, if this flag is present: limit the total number of uris included to only ONE uri. Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service")
+    parser.add_argument('-C', '--collapse-on-fqdn-filter', dest='collapse_on_fqdn_filter', default=None, help="For testssl.sh genreated cmds file: Capturing Regex filter to match on fqdns from 'unique_entrypoint_uris' that share a common element and limit the test to only one of those matches, the first one found. For wildcard certs, this might be something like '.*(.wildcard.domain)'. Default None")
+    parser.add_argument('-M', '--testssl-outputmode', dest='testssl_outputmode', help='For testssl.sh genreated cmds file: for each command generated, the filenames by which the testssl.sh `-*file` output file arguments will be generated. Default `files`. If `dirs1` a unique dir structure will be created based on swarmname/servicename/fqdn/testssloutput__[timestamp].[ext], If `dirs2` a unique dir structure will be created based on fqdn/[timestamp]/swarmname/servicename/testssloutput__fqdn.[ext], if `files` each output file will be in the same `--testssl-outputdir` directory but named such as testssloutput__[swarmname]__[servicename]__[fqdn]__[timestamp].[ext]', default="files")
+    parser.add_argument('-D', '--testssl-dir', dest='testssl_dir', help='For testssl.sh genreated cmds file: dir containing the `testssl.sh` script to prepend to the command, default None"', default=None)
+    parser.add_argument('-F', '--testssl-output-file-types', dest='testssl_output_file_types', help='For testssl.sh genreated cmds file: The `--*file` argument types that will be included for each command (comma delimited no spaces), default all: "html,json,csv,log"', default="html,json,csv,log")
 
 
     args = parser.parse_args()
@@ -134,6 +145,14 @@ if __name__ == '__main__':
             servicecheckereport_file = path_prefix+"04_servicecheckerreport.md"
             servicecheckerreport.generate(servicecheckerdb_file,servicecheckereport_file,args.verbose,args.stdout_servicecheckerreport_result)
 
+            # optionally generate testssl.sh commands file
+            if args.gen_testssl_cmds:
+                logging.info("Invoking testsslcmdsgenerator.execute().....")
+                testssl_cmds_file = path_prefix+"05_testssl.sh.cmds"
+                testsslcmdsgenerator.execute(servicechecksdb_file,testssl_cmds_file,False,
+                                             None,args.testssl_nonfile_args,None,
+                                             args.uri_bucket_filter,args.collapse_on_fqdn_filter,args.testssl_outputmode,
+                                             args.testssl_dir,'plain',args.limit_via_direct,args.testssl_output_file_types)
 
         # catch any error
         except Exception as e:
