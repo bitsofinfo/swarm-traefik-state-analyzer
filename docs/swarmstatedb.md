@@ -5,20 +5,37 @@
 This script will interrogate a target swarm for services matching `--service-filter` and dump a summarized subset of the relevant information in a JSON file which can then be consumed by `servicechecksdb.py`...or whatever else you want to do with it. The information it extracts contains published port information, traefik labels, image info, number of replicas amongst other things.
 
 ```bash
-./swarmstatedb.py --output-filename [filename] \
-  --swarm-info-repo-root /pathto/[dir containing swarm-name.yml files] \
-  --swarm-name [swarm-name] \
-  --service-filter '{"name":"some-service-name prefix"}' \
-```
+./swarmstatedb.py --help
 
-Options:
-* `--swarm-info-repo-root`: dir that anywhere in its subdirectories contains `[swarm-name].yml` files that contain the information as described in the `[swarm-name].yml` files section
-* `--service-filter`: filters (dict) – Filters to process on the nodes list. Valid filters: id, name , label and mode.
-* `--swarm-name`: the logical swarm name you are interrogating
-* `--output-filename`: path where the JSON output will be written
-* `--log-file`: path to log file, otherwise STDOUT
-* `--log-level`: python log level (DEBUG, WARN ... etc)
-* `--service-name-exclude-regex`: Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex
+usage: swarmstatedb.py [-h] [-o OUTPUT_FILENAME] -d SWARM_INFO_REPO_ROOT -s
+                       SWARM_NAME [-f SERVICE_FILTER] [-x LOG_LEVEL]
+                       [-l LOG_FILE] [-n SERVICE_NAME_EXCLUDE_REGEX]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -o OUTPUT_FILENAME, --output-filename OUTPUT_FILENAME
+                        Output filename to write the swarm service state to,
+                        default 'swarmstatedb.json'
+  -d SWARM_INFO_REPO_ROOT, --swarm-info-repo-root SWARM_INFO_REPO_ROOT
+                        dir that anywhere in its subdirectories contains
+                        `[swarm-name].yml` yaml config files
+  -s SWARM_NAME, --swarm-name SWARM_NAME
+                        The logical name of the swarm name you want to grab
+                        service state from, i.e. the [swarm-name].yml file to
+                        consume
+  -f SERVICE_FILTER, --service-filter SERVICE_FILTER
+                        i.e. '{"name":"my-app"}' Valid filters: id, name ,
+                        label and mode, default None; i.e. all
+  -x LOG_LEVEL, --log-level LOG_LEVEL
+                        log level, default DEBUG
+  -l LOG_FILE, --log-file LOG_FILE
+                        Path to log file, default None, STDOUT
+  -n SERVICE_NAME_EXCLUDE_REGEX, --service-name-exclude-regex SERVICE_NAME_EXCLUDE_REGEX
+                        Optional, to further refine the set of services by
+                        docker service name that are returned via the
+                        --service-filter, will exclude any services matching
+                        this regex, default None
+```
 
 Produces output:
 ```

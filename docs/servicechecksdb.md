@@ -11,24 +11,41 @@ You can use the generated JSON file that contains all the necessary information 
 Note you an also use this file as input to [testsslinputgenerator.py](tlsssltools.md)
 
 ```bash
-./servicechecksdb.py --input-filename [swarmstatedb output file] \
-  --swarm-info-repo-root /pathto/[dir containing swarm-name.yml files] \
-  --service-state-repo-root /pathto/[dir containing service-state.yml files]
-  --output-filename [filename] \
-  [--layers 0 1 2 3 4] \
-  [--tags health foo bar]
-```
+./servicechecksdb.py --help
 
-Options:
-* `--swarm-info-repo-root`: dir that anywhere in its subdirectories contains `[swarm-name].yml` files that contain the information as described in the `[swarm-name].yml` files section
-* `--service-state-repo-root`: dir that anywhere in its subdirectories contains `service-state.yml` files that contain the information as described in the `service-state.yml` files section
-* `--layers`: layers to generate actual checks for in the output database (default all)
-* `--tags`: only for service checks w/ given tags (default any)
-* `--fqdn-filter`: regex string to limit urls that get computed for checks within specified layers
-* `--input-filename`: path where the JSON output of `swarmstatedb.py` is
-* `--output-filename`: path where the JSON output will be written
-* `--log-file`: path to log file, otherwise STDOUT
-* `--log-level`: python log level (DEBUG, WARN ... etc)
+usage: servicechecksdb.py [-h] [-i INPUT_FILENAME] -s SERVICE_STATE_REPO_ROOT
+                          -d SWARM_INFO_REPO_ROOT [-o OUTPUT_FILENAME]
+                          [-l LAYERS [LAYERS ...]] [-g TAGS [TAGS ...]]
+                          [-x LOG_LEVEL] [-f LOG_FILE] [-e FQDN_FILTER]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT_FILENAME, --input-filename INPUT_FILENAME
+                        Filename of swarm state to consume, default
+                        'swarmstatedb.json'
+  -s SERVICE_STATE_REPO_ROOT, --service-state-repo-root SERVICE_STATE_REPO_ROOT
+                        dir that anywhere in its subdirectories contains
+                        `[swarm-name].yml` yaml config files
+  -d SWARM_INFO_REPO_ROOT, --swarm-info-repo-root SWARM_INFO_REPO_ROOT
+                        dir that anywhere in its subdirectories contains
+                        `service-state.yml` yaml config files
+  -o OUTPUT_FILENAME, --output-filename OUTPUT_FILENAME
+                        Ouput filename for all the generated service checks
+                        db, default 'servicechecksdb.json'
+  -l LAYERS [LAYERS ...], --layers LAYERS [LAYERS ...]
+                        Space separated list of layer checks to generate i.e
+                        '0 1 2 3 4', default all
+  -g TAGS [TAGS ...], --tags TAGS [TAGS ...]
+                        Space separated list of health check tags to include
+                        i.e 'health tag1 tag2 etc', default 'health'
+  -x LOG_LEVEL, --log-level LOG_LEVEL
+                        log level, default DEBUG
+  -f LOG_FILE, --log-file LOG_FILE
+                        Path to log file, default None, STDOUT
+  -e FQDN_FILTER, --fqdn-filter FQDN_FILTER
+                        Regex filter to limit which FQDNs checks actually get
+                        computed within --layers being checked, default None
+```
 
 Decorates additional info to `swarmstatedb` output from `service-state.yml` files:
 ```

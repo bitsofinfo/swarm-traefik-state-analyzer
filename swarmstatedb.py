@@ -141,13 +141,13 @@ def generate(swarm_name,service_filter,swarm_info_repo_root,output_filename,serv
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--output-filename', dest='output_filename', required=False, default="swarmstatedb.json")
-    parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True)
-    parser.add_argument('-s', '--swarm-name', dest='swarm_name', required=True)
-    parser.add_argument('-f', '--service-filter', dest='service_filter', required=False, help="i.e. '{\"name\":\"my-app\"}' Valid filters: id, name , label and mode")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', required=False, default="swarmstatedb.json", help="Output filename to write the swarm service state to, default 'swarmstatedb.json'")
+    parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True, help="dir that anywhere in its subdirectories contains `[swarm-name].yml` yaml config files")
+    parser.add_argument('-s', '--swarm-name', dest='swarm_name', required=True, help="The logical name of the swarm name you want to grab service state from, i.e. the [swarm-name].yml file to consume")
+    parser.add_argument('-f', '--service-filter', dest='service_filter', required=False, help="i.e. '{\"name\":\"my-app\"}' Valid filters: id, name , label and mode, default None; i.e. all")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
-    parser.add_argument('-n', '--service-name-exclude-regex', dest='service_name_exclude_regex', help="Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex")
+    parser.add_argument('-n', '--service-name-exclude-regex', dest='service_name_exclude_regex', help="Optional, to further refine the set of services by docker service name that are returned via the --service-filter, will exclude any services matching this regex, default None")
 
     args = parser.parse_args()
 

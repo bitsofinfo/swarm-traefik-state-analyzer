@@ -435,13 +435,13 @@ def init_watching(metric_ttl_seconds,input_dir,listen_port,listen_addr,threads):
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-dir', dest='input_dir', default="./output", help="Directory path to recursively monitor for new '*servicecheckerdb*' json output files")
-    parser.add_argument('-p', '--listen-port', dest='listen_port', default=8000, help="HTTP port to expose /metrics at")
-    parser.add_argument('-a', '--listen-addr', dest='listen_addr', default='127.0.0.1', help="Address to expost metrics http server on")
-    parser.add_argument('-t', '--metric-ttl-seconds', dest='metric_ttl_seconds', default=300, help="TTL for generated metrics that will be exposed. This value should be > than the interval that new *servicecheckerdb*.json are created")
+    parser.add_argument('-i', '--input-dir', dest='input_dir', default="./output", help="Directory path to recursively monitor for new '*servicecheckerdb*' json output files. Default './output'")
+    parser.add_argument('-p', '--listen-port', dest='listen_port', default=8000, help="HTTP port to expose /metrics at, default 8000")
+    parser.add_argument('-a', '--listen-addr', dest='listen_addr', default='127.0.0.1', help="Address to expost metrics http server on, default 127.0.0.1")
+    parser.add_argument('-t', '--metric-ttl-seconds', dest='metric_ttl_seconds', default=300, help="TTL for generated metrics that will be exposed. This value should be > than the interval that new *servicecheckerdb*.json are created. Default 300")
     parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
-    parser.add_argument('-d', '--threads', dest='threads', default=1, help="max threads for watchdog file processing")
+    parser.add_argument('-d', '--threads', dest='threads', default=1, help="max threads for watchdog file processing, default 1")
 
 
     args = parser.parse_args()

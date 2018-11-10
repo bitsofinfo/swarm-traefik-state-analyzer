@@ -126,12 +126,12 @@ def generate(input_filename,output_filename,verbose,report_stdout):
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicecheckerdb.json", help="Filename of service check result database")
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicecheckerreport.md")
-    parser.add_argument('-v', '--verbose', action='store_true', help="verbose details in report")
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="servicecheckerdb.json", help="Filename of service check result database, default 'servicecheckerdb.json'")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicecheckerreport.md", help="Filename of the markdown report to generate, default 'servicecheckerreport.md'")
+    parser.add_argument('-v', '--verbose', action='store_true', help="verbose details in report, default False")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-l', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
-    parser.add_argument('-p', '--report-stdout', action='store_true', help="print servicecheckerreport output to STDOUT in addition to file")
+    parser.add_argument('-p', '--report-stdout', action='store_true', help="print servicecheckerreport output to STDOUT in addition to file, default False")
 
     args = parser.parse_args()
 

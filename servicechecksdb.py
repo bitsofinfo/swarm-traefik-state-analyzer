@@ -598,15 +598,15 @@ def generate(input_filename,swarm_info_repo_root,service_state_repo_root,output_
 ##########################
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input-filename', dest='input_filename', default="swarmstatedb.json")
-    parser.add_argument('-s', '--service-state-repo-root', dest='service_state_repo_root', required=True)
-    parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True)
-    parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicechecksdb.json")
-    parser.add_argument('-l', '--layers', nargs='+')
-    parser.add_argument('-g', '--tags', nargs='+', default=["health"])
+    parser.add_argument('-i', '--input-filename', dest='input_filename', default="swarmstatedb.json", help="Filename of swarm state to consume, default 'swarmstatedb.json'")
+    parser.add_argument('-s', '--service-state-repo-root', dest='service_state_repo_root', required=True, help="dir that anywhere in its subdirectories contains `[swarm-name].yml` yaml config files")
+    parser.add_argument('-d', '--swarm-info-repo-root', dest='swarm_info_repo_root', required=True, help="dir that anywhere in its subdirectories contains `service-state.yml` yaml config files")
+    parser.add_argument('-o', '--output-filename', dest='output_filename', default="servicechecksdb.json", help="Ouput filename for all the generated service checks db, default 'servicechecksdb.json'")
+    parser.add_argument('-l', '--layers', nargs='+', help="Space separated list of layer checks to generate i.e '0 1 2 3 4', default all")
+    parser.add_argument('-g', '--tags', nargs='+', default=["health"], help="Space separated list of health check tags to include i.e 'health tag1 tag2 etc', default 'health'")
     parser.add_argument('-x', '--log-level', dest='log_level', default="DEBUG", help="log level, default DEBUG ")
     parser.add_argument('-f', '--log-file', dest='log_file', default=None, help="Path to log file, default None, STDOUT")
-    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs checks actually get computed within --layers being checked")
+    parser.add_argument('-e', '--fqdn-filter', dest='fqdn_filter', default=None, help="Regex filter to limit which FQDNs checks actually get computed within --layers being checked, default None")
 
     args = parser.parse_args()
 
