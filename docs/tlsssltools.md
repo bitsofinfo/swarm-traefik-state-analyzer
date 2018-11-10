@@ -41,9 +41,12 @@ optional arguments:
                         each command (comma delimited no spaces), default all:
                         "html,json,csv,log"
   -a TESTSSL_NONFILE_ARGS, --testssl-nonfile-args TESTSSL_NONFILE_ARGS
-                        any valid testssl.sh argument other than any of the
-                        "--*file" destination arguments, default "-S -P -p -U
-                        --fast"
+                        any valid testssl.sh arguments OTHER THAN any of the
+                        '--*file' destination arguments. IMPORTANT! Please
+                        quote the arguments and provide a single leading SPACE
+                        character following your leading quote prior to any
+                        argument (gets around ArgumentParser bug). default '
+                        -S -P -p -U --fast'
   -d TESTSSL_OUTPUTDIR, --testssl-outputdir TESTSSL_OUTPUTDIR
                         for each command generated, the root output dir for
                         all --*file arguments, default None
