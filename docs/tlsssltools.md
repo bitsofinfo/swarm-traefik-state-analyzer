@@ -12,7 +12,7 @@ Another cause of issues can typically be TLS/SSL related, expired certificates, 
 ## <a id="testsslcmdsgenerator"></a>testsslcmdsgenerator.py
 
 ```bash
-./testsslcmdsgenerator.py --help                                                                                                           ✱
+./testsslcmdsgenerator.py --help
 
 usage: testsslcmdsgenerator.py [-h] [-i INPUT_FILENAME] [-o OUTPUT_FILENAME]
                                [-M OUTPUT_MODE] [-D TESTSSL_DIR]
@@ -68,24 +68,26 @@ optional arguments:
                         on disk, default off
   -e FQDN_FILTER, --fqdn-filter FQDN_FILTER
                         Regex filter to limit which FQDNs actually include in
-                        the output. Default None
+                        the output from 'unique_entrypoint_uris' within
+                        (servicechecksdb). Default None
   -B URI_BUCKET_FILTER, --uri-bucket-filter URI_BUCKET_FILTER
                         Regex filter to limit which
-                        'unique_entrypoint_uris.[bucketname]' to actually
+                        'unique_entrypoint_uris.[bucketname]' from the
+                        --input-filename (servicechecksdb) to actually
                         included in output (buckets are 'via_direct' &
                         'via_fqdn'). Default: None
   -L, --limit-via-direct
-                        For the 'via_direct' bucket, if this flag is present:
-                        limit the total number of uris included to only ONE
-                        uri. Given these represent swarm nodes, only one is
-                        typically needed to test the cert presented directly
-                        by that service
+                        For the 'unique_entrypoint_uris'... 'via_direct'
+                        bucket, if this flag is present: limit the total
+                        number of uris included to only ONE uri. Given these
+                        represent swarm nodes, only one is typically needed to
+                        test the cert presented directly by that service
   -c COLLAPSE_ON_FQDN_FILTER, --collapse-on-fqdn-filter COLLAPSE_ON_FQDN_FILTER
-                        Capturing Regex filter to match on fqdns that share a
-                        common element and limit the test to only one of those
-                        matches, the first one found. For wildcard certs, this
-                        might be something like '.*(.wildcard.domain)'.
-                        Default None
+                        Capturing Regex filter to match on fqdns from
+                        'unique_entrypoint_uris' that share a common element
+                        and limit the test to only one of those matches, the
+                        first one found. For wildcard certs, this might be
+                        something like '.*(.wildcard.domain)'. Default None
 ```
 
 Produces output of commands: (`--output-mode sh`)
