@@ -27,7 +27,7 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
   * [swarmstatedb.py](docs/swarmstatedb.md)
   * [servicechecksdb.py](docs/servicechecksdb.md)
   * [servicechecker.py](docs/servicechecker.md)
-  * [servicecheckerreport.py](docs/servicecheckerreport.md)
+  * [servicecheckerreport.py](docs/servicecheckerreport_doc.md)
   * [analyze-swarm-traefik-state.py](docs/analyze-swarm-traefik-state.md)
   * [servicecheckerdb2prometheus.py](docs/servicecheckerdb2prometheus.md)
 * [TLS/SSL diagnosis scripts](docs/tlsssltools.md)
