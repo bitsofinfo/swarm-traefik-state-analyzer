@@ -7,7 +7,7 @@ This script orchestrates all the following steps with one command:
 1. Invokes: [swarmstatedb.py](swarmstatedb.md) to collect raw docker swarm service state database
 1. Invokes: [servicechecksdb.py](servicechecksdb.md)to create database of service checks for the swarm state
 1. Invokes: [servicechecker.py](servicechecker.md) which executes the service checks, captures results
-1. Invokes: [servicecheckerreport.py](servicecheckerreport.md) reads and prepares a simple report  
+1. Invokes: [servicecheckerreport.py](servicecheckerreport_doc.md) reads and prepares a simple report  
 
 All of the data generated from `analyze-swarm-traefik-state.py` is stored by default under the `output/` dir within the working directory
 
