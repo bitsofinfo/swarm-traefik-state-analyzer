@@ -53,6 +53,7 @@ if __name__ == '__main__':
 
     # testsslcmdsgenerator related args
     parser.add_argument('-T', '--gen-testssl-cmds', action='store_true', help='Also produce a testssl.sh.cmds file, optional, default no')
+    parser.add_argument('-X', '--gen-testssl-cmds-nomore-than-once-every-ms', type=int, dest='gen_testssl_cmds_nomore_than_once_every_ms', help="Default 86400000 (24h). If --gen-testssl-cmds is specified, don't generate more than ONE testssl.sh.cmds file every N milliseconds. This is here to throttle an upstream consumer of these files (such as https://github.com/bitsofinfo/testssl.sh-processor) as there is often no need to run testssl.sh more than 1x a day for example.", default=86400000)
     parser.add_argument('-A', '--testssl-nonfile-args', dest='testssl_nonfile_args', help="any valid testssl.sh arguments OTHER THAN any of the '--*file' destination arguments. IMPORTANT! Please quote the arguments and provide a single leading SPACE character ' ' following your leading quote prior to any arguments (works around ArgumentParser bug). default ' -S -P -p -U --fast'", default="-S -P -p -U --fast")
     parser.add_argument('-B', '--uri-bucket-filter', dest='uri_bucket_filter', default=None, help="For testssl.sh genreated cmds file: Regex filter to limit which 'unique_entrypoint_uris.[bucketname]' from the --input-filename (servicechecksdb) to actually included in output (buckets are 'via_direct' & 'via_fqdn'). Default: None")
     parser.add_argument('-L', '--limit-via-direct', dest='limit_via_direct', action='store_const', const=True, help="For testssl.sh genreated cmds file: For the 'unique_entrypoint_uris'... 'via_direct' bucket, if this flag is present: limit the total number of uris included to only ONE uri. Given these represent swarm nodes, only one is typically needed to test the cert presented directly by that service")
@@ -82,6 +83,8 @@ if __name__ == '__main__':
                         handlers=log_handlers)
     logging.Formatter.converter = time.gmtime
 
+    # for gen_testssl_cmds_nomore_than_once_every_ms handling
+    last_testssl_cmds_generated = 0
 
     # ... now start it up
     runs = 0
@@ -146,13 +149,20 @@ if __name__ == '__main__':
             servicecheckerreport.generate(servicecheckerdb_file,servicecheckereport_file,args.verbose,args.stdout_servicecheckerreport_result)
 
             # optionally generate testssl.sh commands file
-            if args.gen_testssl_cmds:
+            now_in_ms = int(round(time.time() * 1000))
+            ms_since_last_testssl_cmds_generated = (now_in_ms - last_testssl_cmds_generated)
+            if args.gen_testssl_cmds and ms_since_last_testssl_cmds_generated >= args.gen_testssl_cmds_nomore_than_once_every_ms:
                 logging.info("Invoking testsslcmdsgenerator.execute().....")
                 testssl_cmds_file = path_prefix+"05_testssl.sh.cmds"
                 testsslcmdsgenerator.execute(servicechecksdb_file,testssl_cmds_file,False,
                                              None,args.testssl_nonfile_args,None,
                                              args.uri_bucket_filter,args.collapse_on_fqdn_filter,args.testssl_outputmode,
                                              args.testssl_dir,'plain',args.limit_via_direct,args.testssl_output_file_types)
+                last_testssl_cmds_generated = int(round(time.time() * 1000))
+
+            elif ms_since_last_testssl_cmds_generated < args.gen_testssl_cmds_nomore_than_once_every_ms:
+                logging.info("Skipping testsslcmdsgenerator.execute() as ms_since_last_testssl_cmds_generated[%d] < gen_testssl_cmds_nomore_than_once_every_ms[%d]" % (ms_since_last_testssl_cmds_generated,args.gen_testssl_cmds_nomore_than_once_every_ms))
+
 
         # catch any error
         except Exception as e:
