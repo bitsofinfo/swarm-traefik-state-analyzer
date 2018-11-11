@@ -14,6 +14,7 @@ All of the data generated from `analyze-swarm-traefik-state.py` is stored by def
 
 ```bash
 ./analyze-swarm-traefik-state.py --help
+
 usage: analyze-swarm-traefik-state.py [-h] -j JOB_NAME -d SWARM_INFO_REPO_ROOT
                                       -s SERVICE_STATE_REPO_ROOT -n SWARM_NAME
                                       [-f SERVICE_FILTER] [-o OUTPUT_DIR] [-v]
@@ -26,6 +27,7 @@ usage: analyze-swarm-traefik-state.py [-h] -j JOB_NAME -d SWARM_INFO_REPO_ROOT
                                       [-y PRE_ANALYZE_SCRIPT_PATH]
                                       [-u RETAIN_OUTPUT_HOURS]
                                       [-w SERVICE_NAME_EXCLUDE_REGEX] [-T]
+                                      [-X GEN_TESTSSL_CMDS_NOMORE_THAN_ONCE_EVERY_MS]
                                       [-A TESTSSL_NONFILE_ARGS]
                                       [-B URI_BUCKET_FILTER] [-L]
                                       [-C COLLAPSE_ON_FQDN_FILTER]
@@ -110,6 +112,14 @@ optional arguments:
   -T, --gen-testssl-cmds
                         Also produce a testssl.sh.cmds file, optional, default
                         no
+  -X GEN_TESTSSL_CMDS_NOMORE_THAN_ONCE_EVERY_MS, --gen-testssl-cmds-nomore-than-once-every-ms GEN_TESTSSL_CMDS_NOMORE_THAN_ONCE_EVERY_MS
+                        Default 86400000 (24h). If --gen-testssl-cmds is
+                        specified, don't generate more than ONE
+                        testssl.sh.cmds file every N milliseconds. This is
+                        here to throttle an upstream consumer of these files
+                        (such as https://github.com/bitsofinfo/testssl.sh-
+                        processor) as there is often no need to run testssl.sh
+                        more than 1x a day for example.
   -A TESTSSL_NONFILE_ARGS, --testssl-nonfile-args TESTSSL_NONFILE_ARGS
                         any valid testssl.sh arguments OTHER THAN any of the
                         '--*file' destination arguments. IMPORTANT! Please
