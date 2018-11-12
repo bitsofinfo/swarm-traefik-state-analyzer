@@ -134,23 +134,31 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
                         fqdn_only = re.sub(":\d+","",fqdn_only)
 
                         if testssl_outputmode == 'files':
+
                             file_arg_target_dir = testssl_outputdir
-                            filename = testssl_outputdir + service_record["swarm_name"] + "__" +service_record["name"] + "__" + target_url.replace("https://","").replace(":","_") + "__" + timestamp
+
+                            # if not blank add a trailing /, otherwise dont
+                            # as we don't want files written literally to root /
+                            if len(file_arg_target_dir) != 0 and not file_arg_target_dir.endswith("/"):
+                                file_arg_target_dir = file_arg_target_dir + "/"
+
+                            filename = service_record["swarm_name"] + "__" +service_record["name"] + "__" + target_url.replace("https://","").replace(":","_") + "__" + timestamp
+
                         elif testssl_outputmode == 'dirs1':
-                            file_arg_target_dir = testssl_outputdir + service_record["swarm_name"] + "/" +service_record["name"] + "/" + fqdn_port
+                            file_arg_target_dir = testssl_outputdir + service_record["swarm_name"] + "/" +service_record["name"] + "/" + fqdn_port + "/"
                             filename = timestamp
                         elif testssl_outputmode == 'dirs2':
-                            file_arg_target_dir = testssl_outputdir + fqdn_only + "/" + timestamp + "/" + service_record["swarm_name"] + "/" +service_record["name"]
+                            file_arg_target_dir = testssl_outputdir + fqdn_only + "/" + timestamp + "/" + service_record["swarm_name"] + "/" +service_record["name"] + "/"
                             filename = fqdn_port
 
                         if output_mode == 'sh' and file_arg_target_dir != '':
                             testssl_sh_commands += "mkdir -p " + file_arg_target_dir + "\n"
 
                         # filenames for all types
-                        logfilename = file_arg_target_dir+"/testssloutput__"+filename+".log"
-                        csvfilename = file_arg_target_dir+"/testssloutput__"+filename+".csv"
-                        htmlfilename = file_arg_target_dir+"/testssloutput__"+filename+".html"
-                        jsonfilename = file_arg_target_dir+"/testssloutput__"+filename+".json"
+                        logfilename = file_arg_target_dir +  "testssloutput__"+filename+".log"
+                        csvfilename = file_arg_target_dir +  "testssloutput__"+filename+".csv"
+                        htmlfilename = file_arg_target_dir + "testssloutput__"+filename+".html"
+                        jsonfilename = file_arg_target_dir + "testssloutput__"+filename+".json"
 
                         # append the actuall flags + file log args for the target_url
                         if testssl_dir is None:
