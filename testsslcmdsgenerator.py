@@ -135,7 +135,7 @@ def execute(input_filename,output_filename,stdout_result,fqdn_filter,
 
                         if testssl_outputmode == 'files':
                             file_arg_target_dir = testssl_outputdir
-                            filename = service_record["swarm_name"] + "__" +service_record["name"] + "__" + target_url.replace("https://","").replace(":","_") + "__" + timestamp
+                            filename = testssl_outputdir + service_record["swarm_name"] + "__" +service_record["name"] + "__" + target_url.replace("https://","").replace(":","_") + "__" + timestamp
                         elif testssl_outputmode == 'dirs1':
                             file_arg_target_dir = testssl_outputdir + service_record["swarm_name"] + "/" +service_record["name"] + "/" + fqdn_port
                             filename = timestamp
