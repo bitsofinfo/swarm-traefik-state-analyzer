@@ -42,8 +42,14 @@ def getServiceData(client,swarm_name,service_id):
     traefik_host_labels = []
     for label in raw_labels:
         if re.match("traefik.[a-zA-Z0-9-.]*frontend.rule", label):
-            traefik_host_labels_tmp = raw_labels[label].split(":")[1].split(",")
-            traefik_host_labels.extend(list(filter(lambda x: x != "", traefik_host_labels_tmp)))
+            # there can be multiple "rules" in the frontend.rule
+            # i.e. Host:x,y,z;PathPrefix:x,y,z etc
+            rules = raw_labels[label].split(";")
+            for rule in rules:
+                if 'host:' in rule.lower():
+                    traefik_host_labels_tmp = rule.split(":")[1].split(",")
+                    traefik_host_labels.extend(list(filter(lambda x: x != "", traefik_host_labels_tmp)))
+
         elif re.match("com.docker.stack.image", label):
             service_data["image"] = raw_labels[label]
         elif re.match("traefik.tags", label):
