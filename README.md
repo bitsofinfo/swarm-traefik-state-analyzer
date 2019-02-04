@@ -4,6 +4,8 @@ This project is intended to aid in the analysis of Docker Swarm services that ar
 
 ![](docs/stsa1-arch.png)
 
+---
+
 Triaging *"where the hell does the problem reside"* in such a setup can be a daunting task as there are many possible points of misconfiguration, hardware and software failures that can be the culprit.
 
 <img align="right" height="250" src="docs/grafana_overall_status.png">
