@@ -1,6 +1,6 @@
 # swarm-traefik-state-analyzer
 
-This project is intended to aid in the analysis of Docker Swarm services that are proxied by [Traefik](https://traefik.io/) in an "swarm footprint" architecture whereby services are segmented on the swarm/traefik by classification of being *internal* or *external* services. All inbound http(s) traffic for either segment passes through higher level proxies (layer4) or direct lb bound fqdns (layer3) on to its corresponding hard/software load balancer (layer2), to one of several Traefik instances (layer1), and then on to individual Swarm (layer0) service containers.
+<img align="left" height="300" src="docs/stsa1-arch.png">This project is intended to aid in the analysis of Docker Swarm services that are proxied by [Traefik](https://traefik.io/) in an "swarm footprint" architecture whereby services are segmented on the swarm/traefik by classification of being *internal* or *external* services. All inbound http(s) traffic for either segment passes through higher level proxies **(layer4)** or direct lb bound fqdns **(layer3)** on to its corresponding hard/software load balancer **(layer2)**, to one of several Traefik instances **(layer1)**, and then on to individual Swarm **(layer0)** service containers.
 
 <img align="right" height="250" src="docs/grafana_overall_status.png">Triaging *"where the hell does the problem reside"* in such a setup can be a daunting task as there are many possible points of misconfiguration, hardware and software failures that can be the culprit.
 
@@ -39,9 +39,7 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
 
 ## <a id="architecture"></a>Architecture overview
 
-This suite of modules is built around the following simple architecture
-
-![](docs/stsa1-arch.png)
+This suite of modules is built around the following simple architecture.
 
 ### Physical
 
