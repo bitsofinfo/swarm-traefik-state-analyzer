@@ -2,10 +2,11 @@
 
 This project is intended to aid in the analysis of Docker Swarm services that are proxied by [Traefik](https://traefik.io/) in an "swarm footprint" architecture whereby services are segmented on the swarm/traefik by classification of being *internal* or *external* services. All inbound http(s) traffic for either segment passes through higher level proxies **(layer4)** or direct lb bound fqdns **(layer3)** on to its corresponding hard/software load balancer **(layer2)**, to one of several Traefik instances **(layer1)**, and then on to individual Swarm **(layer0)** service containers.
 
-<div style="text-align:center"><img width="600" src="docs/stsa1-arch.png"></div>
+![](docs/stsa1-arch.png)
 
-<img align="right" height="250" src="docs/grafana_overall_status.png">Triaging *"where the hell does the problem reside"* in such a setup can be a daunting task as there are many possible points of misconfiguration, hardware and software failures that can be the culprit.
+Triaging *"where the hell does the problem reside"* in such a setup can be a daunting task as there are many possible points of misconfiguration, hardware and software failures that can be the culprit.
 
+<img align="left" height="250" src="docs/grafana_overall_status.png">
 - Are the service containers themselves ok?
 - Are all my swarm nodes up?
 - Is my service accessible and responding on the swarm pub port?
