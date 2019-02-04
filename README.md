@@ -6,7 +6,7 @@ This project is intended to aid in the analysis of Docker Swarm services that ar
 
 Triaging *"where the hell does the problem reside"* in such a setup can be a daunting task as there are many possible points of misconfiguration, hardware and software failures that can be the culprit.
 
-<img align="left" height="250" src="docs/grafana_overall_status.png">
+<img align="right" height="250" src="docs/grafana_overall_status.png">
 - Are the service containers themselves ok?
 - Are all my swarm nodes up?
 - Is my service accessible and responding on the swarm pub port?
