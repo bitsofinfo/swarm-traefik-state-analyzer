@@ -41,6 +41,8 @@ By validating access directly through all possible layers of a Swarm/Traefik foo
 
 This suite of modules is built around the following simple architecture
 
+![](docs/stsa1-arch.png)
+
 ### Physical
 
 * You have a Docker Swarm cluster made up of N hosts
